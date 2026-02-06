@@ -810,19 +810,67 @@ class NutritionTracker extends HTMLElement {
             // Store the image for the meal
             this.pendingImage = preview.src;
 
-            alert(`Food detected: ${mockData.name}\nCalories: ${mockData.calories} kcal\n\nPlease review and adjust the details if needed, then click "Add Meal".`);
+            alert(`🍜 Food detected: ${mockData.name}\nCalories: ${mockData.calories} kcal\nProtein: ${mockData.protein}g | Carbs: ${mockData.carbs}g | Fat: ${mockData.fat}g\n\n✏️ Please review and adjust the details if needed, then click "Add Meal".\n\nNote: This is simulated AI detection. In production, this would use real computer vision API.`);
         }, 2000);
     }
 
     generateMockNutrition() {
+        // Expanded food database with diverse cuisines (Singapore & Asian focused)
         const foods = [
-            { name: 'Grilled Chicken Salad', calories: 350, protein: 40, carbs: 20, fat: 10 },
-            { name: 'Salmon with Vegetables', calories: 450, protein: 35, carbs: 25, fat: 20 },
-            { name: 'Pasta Carbonara', calories: 650, protein: 25, carbs: 70, fat: 28 },
-            { name: 'Fruit Smoothie Bowl', calories: 280, protein: 8, carbs: 55, fat: 5 },
-            { name: 'Beef Burger with Fries', calories: 780, protein: 30, carbs: 65, fat: 42 }
+            // Asian Noodles & Rice
+            { name: 'Char Kway Teow', calories: 740, protein: 25, carbs: 85, fat: 32, cuisine: 'asian' },
+            { name: 'Laksa', calories: 580, protein: 22, carbs: 65, fat: 28, cuisine: 'asian' },
+            { name: 'Hokkien Mee', calories: 650, protein: 28, carbs: 72, fat: 30, cuisine: 'asian' },
+            { name: 'Chicken Rice', calories: 550, protein: 32, carbs: 68, fat: 18, cuisine: 'asian' },
+            { name: 'Nasi Lemak', calories: 680, protein: 22, carbs: 78, fat: 35, cuisine: 'asian' },
+            { name: 'Fried Rice', calories: 520, protein: 18, carbs: 72, fat: 22, cuisine: 'asian' },
+            { name: 'Pad Thai', calories: 490, protein: 20, carbs: 65, fat: 20, cuisine: 'asian' },
+            { name: 'Pho', calories: 420, protein: 25, carbs: 55, fat: 12, cuisine: 'asian' },
+            { name: 'Ramen', calories: 550, protein: 28, carbs: 68, fat: 22, cuisine: 'asian' },
+            { name: 'Wonton Noodles', calories: 460, protein: 22, carbs: 58, fat: 18, cuisine: 'asian' },
+            { name: 'Bak Chor Mee', calories: 480, protein: 24, carbs: 62, fat: 20, cuisine: 'asian' },
+            { name: 'Ban Mian', calories: 440, protein: 20, carbs: 60, fat: 16, cuisine: 'asian' },
+            { name: 'Mee Goreng', calories: 620, protein: 22, carbs: 75, fat: 28, cuisine: 'asian' },
+            { name: 'Bee Hoon Goreng', calories: 580, protein: 20, carbs: 70, fat: 26, cuisine: 'asian' },
+
+            // Asian Mains
+            { name: 'Satay with Rice Cake', calories: 520, protein: 35, carbs: 45, fat: 25, cuisine: 'asian' },
+            { name: 'Chicken Curry with Rice', calories: 620, protein: 30, carbs: 72, fat: 28, cuisine: 'asian' },
+            { name: 'Rendang with Rice', calories: 680, protein: 32, carbs: 68, fat: 35, cuisine: 'asian' },
+            { name: 'Dim Sum Platter', calories: 450, protein: 18, carbs: 52, fat: 22, cuisine: 'asian' },
+            { name: 'Sushi Platter', calories: 420, protein: 22, carbs: 58, fat: 12, cuisine: 'asian' },
+            { name: 'Bibimbap', calories: 560, protein: 24, carbs: 68, fat: 22, cuisine: 'asian' },
+
+            // Western
+            { name: 'Grilled Chicken Salad', calories: 350, protein: 40, carbs: 20, fat: 10, cuisine: 'western' },
+            { name: 'Salmon with Vegetables', calories: 450, protein: 35, carbs: 25, fat: 20, cuisine: 'western' },
+            { name: 'Pasta Carbonara', calories: 650, protein: 25, carbs: 70, fat: 28, cuisine: 'western' },
+            { name: 'Beef Steak with Mashed Potato', calories: 720, protein: 42, carbs: 45, fat: 38, cuisine: 'western' },
+            { name: 'Fish and Chips', calories: 840, protein: 32, carbs: 85, fat: 45, cuisine: 'western' },
+            { name: 'Burger with Fries', calories: 780, protein: 30, carbs: 65, fat: 42, cuisine: 'western' },
+            { name: 'Caesar Salad', calories: 380, protein: 28, carbs: 22, fat: 24, cuisine: 'western' },
+
+            // Healthy Options
+            { name: 'Poke Bowl', calories: 480, protein: 32, carbs: 55, fat: 15, cuisine: 'healthy' },
+            { name: 'Quinoa Buddha Bowl', calories: 420, protein: 18, carbs: 58, fat: 14, cuisine: 'healthy' },
+            { name: 'Fruit Smoothie Bowl', calories: 280, protein: 8, carbs: 55, fat: 5, cuisine: 'healthy' },
+            { name: 'Acai Bowl', calories: 320, protein: 10, carbs: 62, fat: 8, cuisine: 'healthy' },
+
+            // Snacks & Light Meals
+            { name: 'Chicken Sandwich', calories: 420, protein: 28, carbs: 48, fat: 16, cuisine: 'western' },
+            { name: 'Roti Prata (2 pieces)', calories: 380, protein: 12, carbs: 58, fat: 18, cuisine: 'asian' },
+            { name: 'Spring Rolls (5 pieces)', calories: 340, protein: 14, carbs: 42, fat: 18, cuisine: 'asian' }
         ];
-        return foods[Math.floor(Math.random() * foods.length)];
+
+        // Simulate more intelligent detection by giving preference to Asian foods
+        // (since we're Singapore-based)
+        const asianFoods = foods.filter(f => f.cuisine === 'asian');
+        const allFoods = foods;
+
+        // 70% chance to detect as Asian food, 30% for all foods (simulating better Asian food recognition)
+        const foodPool = Math.random() < 0.7 ? asianFoods : allFoods;
+
+        return foodPool[Math.floor(Math.random() * foodPool.length)];
     }
 
     handleManualEntry() {
