@@ -4608,6 +4608,15 @@ class LocalServicesMap extends HTMLElement {
                     color: white;
                     border-color: var(--accent-color, #8a2be2);
                 }
+                #map {
+                    width: 100%;
+                    height: 400px;
+                    border-radius: 12px;
+                    margin-bottom: 1.5rem;
+                    position: relative;
+                    overflow: hidden;
+                    z-index: 1;
+                }
                 .map-placeholder {
                     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                     border-radius: 12px;
@@ -4803,6 +4812,9 @@ class LocalServicesMap extends HTMLElement {
                     .services-map-container {
                         padding: 1rem;
                     }
+                    #map {
+                        height: 300px;
+                    }
                     .map-placeholder {
                         height: 300px;
                     }
@@ -4811,10 +4823,12 @@ class LocalServicesMap extends HTMLElement {
                     }
                     .category-filters {
                         width: 100%;
+                        overflow-x: auto;
                     }
                     .filter-btn {
                         flex: 1;
                         justify-content: center;
+                        min-width: 100px;
                     }
                 }
             </style>
@@ -4923,6 +4937,13 @@ class LocalServicesMap extends HTMLElement {
                 maxZoom: 19
             }).addTo(this.map);
 
+            // Ensure map renders properly after container is ready
+            setTimeout(() => {
+                if (this.map) {
+                    this.map.invalidateSize();
+                }
+            }, 100);
+
             // Custom icon for sponsored businesses
             const sponsoredIcon = L.divIcon({
                 className: 'custom-marker',
@@ -5006,33 +5027,26 @@ class LocalServicesMap extends HTMLElement {
         if ('geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    this.userLocation = {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude
-                    };
+                    const userPos = [position.coords.latitude, position.coords.longitude];
 
                     // Update map if it exists
                     if (this.map) {
-                        this.map.setCenter(this.userLocation);
-                        this.map.setZoom(14);
+                        // Center map on user location (Leaflet API)
+                        this.map.setView(userPos, 14);
 
                         // Add user location marker if not already added
                         if (!this.userMarker) {
-                            this.userMarker = new google.maps.Marker({
-                                position: this.userLocation,
-                                map: this.map,
-                                title: 'Your Location',
-                                icon: {
-                                    path: google.maps.SymbolPath.CIRCLE,
-                                    scale: 10,
-                                    fillColor: '#4285F4',
-                                    fillOpacity: 1,
-                                    strokeColor: '#ffffff',
-                                    strokeWeight: 3
-                                }
+                            const userIcon = L.divIcon({
+                                className: 'custom-marker',
+                                html: `<div style="background: #4285F4; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
+                                iconSize: [20, 20],
+                                iconAnchor: [10, 10]
                             });
+                            this.userMarker = L.marker(userPos, { icon: userIcon }).addTo(this.map);
+                            this.userMarker.bindPopup('<strong>📍 Your Location</strong>');
                         } else {
-                            this.userMarker.setPosition(this.userLocation);
+                            // Update existing marker position (Leaflet API)
+                            this.userMarker.setLatLng(userPos);
                         }
                     }
 
