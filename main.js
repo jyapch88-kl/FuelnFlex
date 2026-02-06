@@ -1,3 +1,7 @@
+// Global premium state management
+window.FuelFlexApp = window.FuelFlexApp || {};
+window.FuelFlexApp.isPremium = localStorage.getItem('ff_premium') === 'true' || false;
+
 class MainNavigation extends HTMLElement {
     constructor() {
         super();
@@ -16,7 +20,7 @@ class MainNavigation extends HTMLElement {
                     padding: 1rem 2rem;
                     display: flex;
                     justify-content: center;
-                    align-items: center; /* Vertically center items */
+                    align-items: center;
                     gap: 1rem;
                     box-shadow: 0 2px 5px var(--shadow-color, rgba(0,0,0,0.1));
                 }
@@ -35,11 +39,11 @@ class MainNavigation extends HTMLElement {
                     display: flex;
                     align-items: center;
                     gap: 0.5rem;
+                    position: relative;
                 }
                 button:hover, a:hover, button.active {
                     background-color: var(--accent-color, #8a2be2);
                     color: white;
-                    /* Glow effect */
                     box-shadow: 0 0 15px var(--accent-glow, #8a2be280);
                 }
                 .icon {
@@ -49,6 +53,30 @@ class MainNavigation extends HTMLElement {
                   'GRAD' 0,
                   'opsz' 24
                 }
+                .premium-badge {
+                    background: linear-gradient(135deg, #FFD700, #FFA500);
+                    color: #333;
+                    font-size: 0.65rem;
+                    padding: 0.15rem 0.4rem;
+                    border-radius: 4px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    position: absolute;
+                    top: -5px;
+                    right: -5px;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                }
+                .premium-user-badge {
+                    background: linear-gradient(135deg, #FFD700, #FFA500);
+                    color: #333;
+                    padding: 0.5rem 1rem;
+                    border-radius: 8px;
+                    font-weight: 700;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.3rem;
+                    font-size: 0.9rem;
+                }
             </style>
             <nav>
                 <a href="index.html">Home</a>
@@ -57,11 +85,13 @@ class MainNavigation extends HTMLElement {
                 <button data-target="nutrition-tracking">Nutrition Tracking</button>
                 <button data-target="fitness-goals">Fitness Goal Planning</button>
                 <button data-target="community">Community</button>
-                <button data-target="ai-health-chat">
+                <button data-target="ai-health-chat" data-premium="true">
                     <span class="material-symbols-outlined icon">smart_toy</span>
                     AI Health Chat
+                    <span class="premium-badge">PRO</span>
                 </button>
                 <a href="admin.html">Admin</a>
+                ${window.FuelFlexApp.isPremium ? '<div class="premium-user-badge"><span class="material-symbols-outlined">workspace_premium</span>Premium</div>' : ''}
             </nav>
         `;
     }
@@ -74,6 +104,17 @@ class MainNavigation extends HTMLElement {
 
     handleNavigation(button) {
         const targetId = button.dataset.target;
+        const isPremiumFeature = button.dataset.premium === 'true';
+
+        // Check if premium feature and user is not premium
+        if (isPremiumFeature && !window.FuelFlexApp.isPremium) {
+            // Show premium modal instead
+            const modal = document.querySelector('pricing-modal');
+            if (modal) {
+                modal.show();
+            }
+            return;
+        }
 
         this.shadowRoot.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
         button.classList.add('active');
@@ -2280,6 +2321,12 @@ class AIHealthChat extends HTMLElement {
     }
 
     render() {
+        // Check if user is premium
+        if (!window.FuelFlexApp.isPremium) {
+            this.shadowRoot.innerHTML = '<premium-gate></premium-gate>';
+            return;
+        }
+
         this.shadowRoot.innerHTML = `
             <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
             <style>
@@ -2889,6 +2936,536 @@ class AIHealthChat extends HTMLElement {
     }
 }
 
+class PricingModal extends HTMLElement {
+    constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.innerHTML = `
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+            <style>
+                .modal-overlay {
+                    display: none;
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.7);
+                    z-index: 10000;
+                    align-items: center;
+                    justify-content: center;
+                    animation: fadeIn 0.3s ease;
+                }
+                .modal-overlay.active {
+                    display: flex;
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                .modal-content {
+                    background: var(--card-bg, #fff);
+                    border-radius: 16px;
+                    max-width: 1000px;
+                    width: 90%;
+                    max-height: 90vh;
+                    overflow-y: auto;
+                    position: relative;
+                    animation: slideUp 0.3s ease;
+                }
+                @keyframes slideUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(50px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                .close-btn {
+                    position: absolute;
+                    top: 1rem;
+                    right: 1rem;
+                    background: none;
+                    border: none;
+                    font-size: 2rem;
+                    cursor: pointer;
+                    color: #666;
+                    z-index: 1;
+                    width: 40px;
+                    height: 40px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 50%;
+                    transition: all 0.3s ease;
+                }
+                .close-btn:hover {
+                    background: #f0f0f0;
+                    color: #333;
+                }
+                .modal-header {
+                    background: linear-gradient(135deg, var(--accent-color, #8a2be2), oklch(65% 0.3 320));
+                    color: white;
+                    padding: 3rem 2rem 2rem;
+                    text-align: center;
+                    border-radius: 16px 16px 0 0;
+                }
+                .modal-header h2 {
+                    margin: 0 0 0.5rem 0;
+                    font-size: 2.5rem;
+                }
+                .modal-header p {
+                    margin: 0;
+                    font-size: 1.1rem;
+                    opacity: 0.95;
+                }
+                .pricing-container {
+                    padding: 2rem;
+                }
+                .pricing-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                    gap: 2rem;
+                    margin-bottom: 2rem;
+                }
+                .pricing-card {
+                    background: white;
+                    border: 2px solid var(--border-color, #eee);
+                    border-radius: 12px;
+                    padding: 2rem;
+                    transition: all 0.3s ease;
+                    position: relative;
+                }
+                .pricing-card:hover {
+                    transform: translateY(-10px);
+                    box-shadow: 0 10px 30px var(--shadow-color, rgba(0,0,0,0.15));
+                }
+                .pricing-card.popular {
+                    border-color: var(--accent-color, #8a2be2);
+                    box-shadow: 0 8px 25px var(--shadow-color, rgba(138, 43, 226, 0.2));
+                }
+                .popular-badge {
+                    position: absolute;
+                    top: -12px;
+                    right: 20px;
+                    background: linear-gradient(135deg, #FFD700, #FFA500);
+                    color: #333;
+                    padding: 0.3rem 1rem;
+                    border-radius: 20px;
+                    font-weight: 700;
+                    font-size: 0.85rem;
+                    text-transform: uppercase;
+                }
+                .plan-name {
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    margin: 0 0 0.5rem 0;
+                    color: var(--text-color, #333);
+                }
+                .plan-price {
+                    font-size: 3rem;
+                    font-weight: 700;
+                    color: var(--accent-color, #8a2be2);
+                    margin: 1rem 0;
+                }
+                .plan-price span {
+                    font-size: 1.2rem;
+                    color: #666;
+                }
+                .plan-description {
+                    color: #666;
+                    margin-bottom: 1.5rem;
+                    line-height: 1.5;
+                }
+                .features-list {
+                    list-style: none;
+                    padding: 0;
+                    margin: 0 0 2rem 0;
+                }
+                .features-list li {
+                    padding: 0.7rem 0;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    border-bottom: 1px solid var(--border-color, #eee);
+                }
+                .features-list li:last-child {
+                    border-bottom: none;
+                }
+                .feature-icon {
+                    color: #51cf66;
+                    font-size: 20px;
+                }
+                .feature-icon.disabled {
+                    color: #ccc;
+                }
+                .subscribe-btn {
+                    width: 100%;
+                    padding: 1rem;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 1.1rem;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
+                }
+                .subscribe-btn.free {
+                    background: #f0f0f0;
+                    color: #666;
+                }
+                .subscribe-btn.premium {
+                    background: var(--accent-color, #8a2be2);
+                    color: white;
+                }
+                .subscribe-btn:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 5px 15px var(--shadow-color, rgba(0,0,0,0.2));
+                }
+                .features-comparison {
+                    margin-top: 3rem;
+                    padding: 2rem;
+                    background: var(--primary-color, #f9f9f9);
+                    border-radius: 12px;
+                }
+                .features-comparison h3 {
+                    text-align: center;
+                    color: var(--accent-color, #8a2be2);
+                    margin-bottom: 1.5rem;
+                }
+                .comparison-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    gap: 1.5rem;
+                }
+                .feature-category {
+                    background: white;
+                    padding: 1.5rem;
+                    border-radius: 8px;
+                }
+                .feature-category h4 {
+                    margin: 0 0 1rem 0;
+                    color: var(--text-color, #333);
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+            </style>
+
+            <div class="modal-overlay" id="modal-overlay">
+                <div class="modal-content">
+                    <button class="close-btn" id="close-btn">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+
+                    <div class="modal-header">
+                        <h2>
+                            <span class="material-symbols-outlined" style="font-size: 3rem; vertical-align: middle;">workspace_premium</span>
+                            Upgrade to Premium
+                        </h2>
+                        <p>Unlock AI Health Chat and premium features to supercharge your fitness journey</p>
+                    </div>
+
+                    <div class="pricing-container">
+                        <div class="pricing-grid">
+                            <div class="pricing-card">
+                                <h3 class="plan-name">Free</h3>
+                                <div class="plan-price">$0<span>/month</span></div>
+                                <p class="plan-description">Perfect for getting started with basic tracking</p>
+                                <ul class="features-list">
+                                    <li>
+                                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                                        Dashboard tracking
+                                    </li>
+                                    <li>
+                                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                                        Nutrition tracking
+                                    </li>
+                                    <li>
+                                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                                        Basic fitness goals
+                                    </li>
+                                    <li>
+                                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                                        Community access
+                                    </li>
+                                    <li>
+                                        <span class="material-symbols-outlined feature-icon disabled">cancel</span>
+                                        <span style="color: #999;">AI Health Chat</span>
+                                    </li>
+                                    <li>
+                                        <span class="material-symbols-outlined feature-icon disabled">cancel</span>
+                                        <span style="color: #999;">Specialist connections</span>
+                                    </li>
+                                </ul>
+                                <button class="subscribe-btn free" disabled>Current Plan</button>
+                            </div>
+
+                            <div class="pricing-card popular">
+                                <div class="popular-badge">Most Popular</div>
+                                <h3 class="plan-name">Premium</h3>
+                                <div class="plan-price">$9.99<span>/month</span></div>
+                                <p class="plan-description">Everything you need for optimal health and fitness</p>
+                                <ul class="features-list">
+                                    <li>
+                                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                                        All Free features
+                                    </li>
+                                    <li>
+                                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                                        AI Health Assistant 24/7
+                                    </li>
+                                    <li>
+                                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                                        Connect with specialists
+                                    </li>
+                                    <li>
+                                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                                        Advanced marathon plans
+                                    </li>
+                                    <li>
+                                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                                        Personalized insights
+                                    </li>
+                                    <li>
+                                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                                        Priority support
+                                    </li>
+                                </ul>
+                                <button class="subscribe-btn premium" id="subscribe-premium">
+                                    <span class="material-symbols-outlined">workspace_premium</span>
+                                    Upgrade to Premium
+                                </button>
+                            </div>
+
+                            <div class="pricing-card">
+                                <h3 class="plan-name">Pro</h3>
+                                <div class="plan-price">$19.99<span>/month</span></div>
+                                <p class="plan-description">For serious athletes and fitness enthusiasts</p>
+                                <ul class="features-list">
+                                    <li>
+                                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                                        All Premium features
+                                    </li>
+                                    <li>
+                                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                                        Unlimited specialist consultations
+                                    </li>
+                                    <li>
+                                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                                        Custom workout programs
+                                    </li>
+                                    <li>
+                                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                                        Meal planning service
+                                    </li>
+                                    <li>
+                                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                                        Biometric integration
+                                    </li>
+                                    <li>
+                                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                                        1-on-1 coaching sessions
+                                    </li>
+                                </ul>
+                                <button class="subscribe-btn premium" id="subscribe-pro">
+                                    <span class="material-symbols-outlined">auto_awesome</span>
+                                    Upgrade to Pro
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="features-comparison">
+                            <h3>Why Upgrade?</h3>
+                            <div class="comparison-grid">
+                                <div class="feature-category">
+                                    <h4>
+                                        <span class="material-symbols-outlined" style="color: var(--accent-color);">smart_toy</span>
+                                        AI Health Assistant
+                                    </h4>
+                                    <p>Get instant answers to health and fitness questions from our intelligent AI assistant available 24/7.</p>
+                                </div>
+                                <div class="feature-category">
+                                    <h4>
+                                        <span class="material-symbols-outlined" style="color: var(--accent-color);">people</span>
+                                        Expert Connections
+                                    </h4>
+                                    <p>Connect directly with doctors, trainers, coaches, and dieticians for professional guidance.</p>
+                                </div>
+                                <div class="feature-category">
+                                    <h4>
+                                        <span class="material-symbols-outlined" style="color: var(--accent-color);">analytics</span>
+                                        Advanced Analytics
+                                    </h4>
+                                    <p>Track your progress with detailed insights and personalized recommendations.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    connectedCallback() {
+        const overlay = this.shadowRoot.getElementById('modal-overlay');
+        const closeBtn = this.shadowRoot.getElementById('close-btn');
+        const premiumBtn = this.shadowRoot.getElementById('subscribe-premium');
+        const proBtn = this.shadowRoot.getElementById('subscribe-pro');
+
+        closeBtn.addEventListener('click', () => this.hide());
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) this.hide();
+        });
+
+        premiumBtn.addEventListener('click', () => this.handleUpgrade('premium'));
+        proBtn.addEventListener('click', () => this.handleUpgrade('pro'));
+    }
+
+    show() {
+        this.shadowRoot.getElementById('modal-overlay').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    hide() {
+        this.shadowRoot.getElementById('modal-overlay').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    handleUpgrade(plan) {
+        // In a real app, this would integrate with a payment processor
+        if (confirm(`Upgrade to ${plan.charAt(0).toUpperCase() + plan.slice(1)} plan?\n\nFor demo purposes, this will activate premium features locally.`)) {
+            window.FuelFlexApp.isPremium = true;
+            localStorage.setItem('ff_premium', 'true');
+
+            // Reload to update navigation
+            window.location.reload();
+        }
+    }
+}
+
+class PremiumGate extends HTMLElement {
+    constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.innerHTML = `
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+            <style>
+                .premium-gate {
+                    background: linear-gradient(135deg, rgba(138, 43, 226, 0.05), rgba(138, 43, 226, 0.1));
+                    border: 2px solid var(--accent-color, #8a2be2);
+                    border-radius: 16px;
+                    padding: 3rem;
+                    text-align: center;
+                    max-width: 600px;
+                    margin: 2rem auto;
+                }
+                .lock-icon {
+                    font-size: 80px;
+                    color: var(--accent-color, #8a2be2);
+                    margin-bottom: 1rem;
+                }
+                h2 {
+                    color: var(--text-color, #333);
+                    margin: 0 0 1rem 0;
+                }
+                p {
+                    color: #666;
+                    font-size: 1.1rem;
+                    line-height: 1.6;
+                    margin-bottom: 2rem;
+                }
+                .features-preview {
+                    background: white;
+                    border-radius: 12px;
+                    padding: 1.5rem;
+                    margin-bottom: 2rem;
+                    text-align: left;
+                }
+                .features-preview h3 {
+                    margin: 0 0 1rem 0;
+                    color: var(--accent-color, #8a2be2);
+                    text-align: center;
+                }
+                .feature-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    margin-bottom: 0.8rem;
+                    padding: 0.5rem;
+                }
+                .feature-icon {
+                    color: #51cf66;
+                    font-size: 24px;
+                }
+                .upgrade-btn {
+                    background: linear-gradient(135deg, var(--accent-color, #8a2be2), oklch(65% 0.3 320));
+                    color: white;
+                    border: none;
+                    padding: 1rem 2.5rem;
+                    border-radius: 8px;
+                    font-size: 1.2rem;
+                    font-weight: 700;
+                    cursor: pointer;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    transition: all 0.3s ease;
+                }
+                .upgrade-btn:hover {
+                    transform: translateY(-3px);
+                    box-shadow: 0 10px 25px var(--shadow-color, rgba(138, 43, 226, 0.3));
+                }
+            </style>
+
+            <div class="premium-gate">
+                <span class="material-symbols-outlined lock-icon">lock</span>
+                <h2>Premium Feature</h2>
+                <p>Upgrade to Premium to unlock the AI Health Assistant and connect with healthcare professionals</p>
+
+                <div class="features-preview">
+                    <h3>What You'll Get:</h3>
+                    <div class="feature-item">
+                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                        <span>24/7 AI Health Assistant with intelligent responses</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                        <span>Connect with Family Doctors, Trainers, and Dieticians</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                        <span>Personalized health insights and recommendations</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="material-symbols-outlined feature-icon">check_circle</span>
+                        <span>Priority support and advanced features</span>
+                    </div>
+                </div>
+
+                <button class="upgrade-btn" id="upgrade-btn">
+                    <span class="material-symbols-outlined">workspace_premium</span>
+                    Upgrade to Premium
+                </button>
+            </div>
+        `;
+    }
+
+    connectedCallback() {
+        this.shadowRoot.getElementById('upgrade-btn').addEventListener('click', () => {
+            const modal = document.querySelector('pricing-modal');
+            if (modal) {
+                modal.show();
+            }
+        });
+    }
+}
+
 customElements.define('main-navigation', MainNavigation);
 customElements.define('feature-section', FeatureSection);
 customElements.define('nutrition-tracker', NutritionTracker);
@@ -2899,3 +3476,5 @@ customElements.define('post-card', PostCard);
 customElements.define('feature-voting', FeatureVoting);
 customElements.define('about-me', AboutMe);
 customElements.define('ai-health-chat', AIHealthChat);
+customElements.define('pricing-modal', PricingModal);
+customElements.define('premium-gate', PremiumGate);
