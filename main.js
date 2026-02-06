@@ -4463,90 +4463,90 @@ class LocalServicesMap extends HTMLElement {
         this.userLocation = null;
         this.selectedCategory = 'all';
 
-        // Mock business data with sponsored partnerships
+        // Mock business data with sponsored partnerships (Singapore-based)
         this.businesses = [
             {
                 id: 1,
-                name: 'PowerFit Gym',
+                name: 'True Fitness Orchard',
                 type: 'gym',
                 sponsored: true,
                 rating: 4.8,
                 distance: 0.8,
-                address: '123 Main St',
-                phone: '555-0101',
-                description: 'Premium gym with state-of-the-art equipment',
-                lat: 37.7749,
-                lng: -122.4194,
+                address: '313 Orchard Road, #04-01, Singapore 238895',
+                phone: '+65 6736 1113',
+                description: 'Premium gym with state-of-the-art equipment in Orchard',
+                lat: 1.3048,
+                lng: 103.8318,
                 features: ['24/7 Access', 'Personal Training', 'Group Classes']
             },
             {
                 id: 2,
-                name: 'HealthFirst Medical Center',
+                name: 'Raffles Medical Clinic',
                 type: 'medical',
                 sponsored: true,
                 rating: 4.9,
                 distance: 1.2,
-                address: '456 Health Ave',
-                phone: '555-0102',
-                description: 'Comprehensive healthcare services',
-                lat: 37.7750,
-                lng: -122.4180,
+                address: '585 North Bridge Road, Singapore 188770',
+                phone: '+65 6311 1111',
+                description: 'Comprehensive healthcare services and family medicine',
+                lat: 1.3000,
+                lng: 103.8583,
                 features: ['General Practice', 'Sports Medicine', 'Physical Therapy']
             },
             {
                 id: 3,
-                name: 'Zen Yoga Studio',
+                name: 'Pure Yoga Singapore',
                 type: 'gym',
                 sponsored: false,
                 rating: 4.7,
                 distance: 1.5,
-                address: '789 Wellness Blvd',
-                phone: '555-0103',
-                description: 'Peaceful yoga and meditation classes',
-                lat: 37.7745,
-                lng: -122.4200,
+                address: '501 Orchard Road, Wheelock Place, Singapore 238880',
+                phone: '+65 6738 7811',
+                description: 'Peaceful yoga and meditation classes with expert instructors',
+                lat: 1.3052,
+                lng: 103.8303,
                 features: ['Yoga', 'Meditation', 'Pilates']
             },
             {
                 id: 4,
-                name: 'Elite Sports Therapy',
+                name: 'Core Concepts Physiotherapy',
                 type: 'physical-therapy',
                 sponsored: true,
                 rating: 4.9,
                 distance: 0.5,
-                address: '321 Recovery Rd',
-                phone: '555-0104',
-                description: 'Expert physical therapy and rehabilitation',
-                lat: 37.7755,
-                lng: -122.4190,
+                address: '1 Raffles Place, #04-49, Singapore 048616',
+                phone: '+65 6224 4321',
+                description: 'Expert physical therapy and sports rehabilitation',
+                lat: 1.2844,
+                lng: 103.8510,
                 features: ['Sports Injury', 'Rehabilitation', 'Massage Therapy']
             },
             {
                 id: 5,
-                name: 'NutriLife Wellness Center',
+                name: 'NutriHub Wellness Centre',
                 type: 'nutrition',
                 sponsored: false,
                 rating: 4.6,
                 distance: 2.1,
-                address: '654 Diet Dr',
-                phone: '555-0105',
-                description: 'Nutritionist consultations and meal planning',
-                lat: 37.7740,
-                lng: -122.4210,
+                address: '100 Tras Street, #03-01, Singapore 079027',
+                phone: '+65 6222 0123',
+                description: 'Professional nutritionist consultations and personalized meal planning',
+                lat: 1.2757,
+                lng: 103.8437,
                 features: ['Nutrition Counseling', 'Meal Plans', 'Weight Management']
             },
             {
                 id: 6,
-                name: 'Iron Temple Fitness',
+                name: 'Fitness First Marina Bay',
                 type: 'gym',
                 sponsored: false,
                 rating: 4.5,
                 distance: 1.8,
-                address: '987 Strength St',
-                phone: '555-0106',
-                description: 'Hardcore weightlifting and powerlifting gym',
-                lat: 37.7738,
-                lng: -122.4185,
+                address: '10 Bayfront Avenue, #02-01, Singapore 018956',
+                phone: '+65 6688 7000',
+                description: 'Premium fitness club with Olympic weightlifting facilities',
+                lat: 1.2836,
+                lng: 103.8607,
                 features: ['Weightlifting', 'Powerlifting', 'CrossFit']
             }
         ];
@@ -4941,8 +4941,8 @@ class LocalServicesMap extends HTMLElement {
         if (!mapDiv) return;
 
         try {
-            // Default center (San Francisco)
-            const center = [37.7749, -122.4194];
+            // Default center (Singapore - Marina Bay)
+            const center = [1.3521, 103.8198];
 
             // Create map
             this.map = L.map(mapDiv).setView(center, 13);
