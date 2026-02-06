@@ -4858,13 +4858,7 @@ class LocalServicesMap extends HTMLElement {
                     </button>
                 </div>
 
-                <div class="map-placeholder">
-                    <div class="map-overlay">
-                        <span class="material-symbols-outlined icon">map</span>
-                        <p>Interactive Map View</p>
-                        <p style="font-size: 0.9rem; opacity: 0.9;">In production, this would show Google Maps with real locations</p>
-                    </div>
-                </div>
+                <div id="map" style="width: 100%; height: 400px; border-radius: 12px; margin-bottom: 1.5rem;"></div>
 
                 <div class="businesses-grid" id="businesses-grid"></div>
             </div>
@@ -4888,6 +4882,135 @@ class LocalServicesMap extends HTMLElement {
         this.shadowRoot.getElementById('location-btn').addEventListener('click', () => {
             this.requestLocation();
         });
+
+        // Initialize Google Maps
+        this.initMap();
+    }
+
+    initMap() {
+        // Load Google Maps API
+        if (!window.google || !window.google.maps) {
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY_HERE&callback=initMapCallback`;
+            script.async = true;
+            script.defer = true;
+
+            // Store reference to this component
+            window.initMapCallback = () => {
+                this.createMap();
+            };
+
+            document.head.appendChild(script);
+        } else {
+            this.createMap();
+        }
+    }
+
+    createMap() {
+        const mapDiv = this.shadowRoot.getElementById('map');
+
+        if (!mapDiv) return;
+
+        // Default center (San Francisco)
+        const center = { lat: 37.7749, lng: -122.4194 };
+
+        try {
+            // Create map
+            this.map = new google.maps.Map(mapDiv, {
+                center: center,
+                zoom: 13,
+                styles: [
+                    {
+                        featureType: 'poi',
+                        elementType: 'labels',
+                        stylers: [{ visibility: 'off' }]
+                    }
+                ]
+            });
+
+            // Add markers for each business
+            this.businesses.forEach(business => {
+                const marker = new google.maps.Marker({
+                    position: { lat: business.lat, lng: business.lng },
+                    map: this.map,
+                    title: business.name,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: business.sponsored ? 12 : 8,
+                        fillColor: business.sponsored ? '#FFD700' : '#8a2be2',
+                        fillOpacity: 1,
+                        strokeColor: '#ffffff',
+                        strokeWeight: 2
+                    }
+                });
+
+                // Add info window
+                const infoWindow = new google.maps.InfoWindow({
+                    content: `
+                        <div style="padding: 10px; max-width: 250px;">
+                            <h3 style="margin: 0 0 8px 0; color: #8a2be2;">${business.name}</h3>
+                            ${business.sponsored ? '<span style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #333; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">SPONSORED</span><br/>' : ''}
+                            <p style="margin: 8px 0; color: #666;">${business.description}</p>
+                            <p style="margin: 4px 0;"><strong>⭐ ${business.rating}</strong> • ${business.distance} km away</p>
+                            <div style="margin-top: 10px;">
+                                <a href="tel:${business.phone}" style="color: #8a2be2; text-decoration: none; margin-right: 15px;">📞 Call</a>
+                                <a href="https://maps.google.com/?q=${encodeURIComponent(business.address)}" target="_blank" style="color: #8a2be2; text-decoration: none;">🧭 Directions</a>
+                            </div>
+                        </div>
+                    `
+                });
+
+                marker.addListener('click', () => {
+                    infoWindow.open(this.map, marker);
+                });
+            });
+
+            // Try to get user location
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const userPos = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+
+                        // Add user location marker
+                        new google.maps.Marker({
+                            position: userPos,
+                            map: this.map,
+                            title: 'Your Location',
+                            icon: {
+                                path: google.maps.SymbolPath.CIRCLE,
+                                scale: 10,
+                                fillColor: '#4285F4',
+                                fillOpacity: 1,
+                                strokeColor: '#ffffff',
+                                strokeWeight: 3
+                            }
+                        });
+
+                        // Center map on user location
+                        this.map.setCenter(userPos);
+                    },
+                    () => {
+                        // If geolocation fails, use default center
+                        console.log('Geolocation failed, using default location');
+                    }
+                );
+            }
+        } catch (error) {
+            console.error('Error creating map:', error);
+            // Show fallback message
+            mapDiv.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white; text-align: center; padding: 2rem;">
+                    <div>
+                        <p style="font-size: 1.2rem; margin-bottom: 1rem;">📍 Interactive Map</p>
+                        <p style="font-size: 0.9rem; opacity: 0.9;">Add your Google Maps API key to enable the map</p>
+                        <p style="font-size: 0.85rem; opacity: 0.8; margin-top: 1rem;">Get your free API key at: console.cloud.google.com</p>
+                    </div>
+                </div>
+            `;
+        }
     }
 
     requestLocation() {
@@ -4898,10 +5021,36 @@ class LocalServicesMap extends HTMLElement {
                         lat: position.coords.latitude,
                         lng: position.coords.longitude
                     };
-                    alert('Location enabled! In a production app, distances would be calculated from your actual location.');
+
+                    // Update map if it exists
+                    if (this.map) {
+                        this.map.setCenter(this.userLocation);
+                        this.map.setZoom(14);
+
+                        // Add user location marker if not already added
+                        if (!this.userMarker) {
+                            this.userMarker = new google.maps.Marker({
+                                position: this.userLocation,
+                                map: this.map,
+                                title: 'Your Location',
+                                icon: {
+                                    path: google.maps.SymbolPath.CIRCLE,
+                                    scale: 10,
+                                    fillColor: '#4285F4',
+                                    fillOpacity: 1,
+                                    strokeColor: '#ffffff',
+                                    strokeWeight: 3
+                                }
+                            });
+                        } else {
+                            this.userMarker.setPosition(this.userLocation);
+                        }
+                    }
+
+                    alert('Location enabled! The map is now centered on your location.');
                 },
                 (error) => {
-                    alert('Unable to get your location. Please enable location services.');
+                    alert('Unable to get your location. Please enable location services in your browser.');
                 }
             );
         } else {
