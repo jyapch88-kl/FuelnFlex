@@ -4609,13 +4609,15 @@ class LocalServicesMap extends HTMLElement {
                     border-color: var(--accent-color, #8a2be2);
                 }
                 #map {
-                    width: 100%;
-                    height: 400px;
+                    width: 100% !important;
+                    height: 400px !important;
                     border-radius: 12px;
                     margin-bottom: 1.5rem;
                     position: relative;
                     overflow: hidden;
                     z-index: 1;
+                    display: block;
+                    box-sizing: border-box;
                 }
                 .map-placeholder {
                     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -4872,7 +4874,7 @@ class LocalServicesMap extends HTMLElement {
                     </button>
                 </div>
 
-                <div id="map" style="width: 100%; height: 400px; border-radius: 12px; margin-bottom: 1.5rem;"></div>
+                <div id="map"></div>
 
                 <div class="businesses-grid" id="businesses-grid"></div>
             </div>
@@ -4897,8 +4899,22 @@ class LocalServicesMap extends HTMLElement {
             this.requestLocation();
         });
 
-        // Initialize Google Maps
+        // Initialize map
         this.initMap();
+
+        // Watch for when component becomes visible to fix map rendering
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && this.map) {
+                    // Component is now visible, resize the map
+                    setTimeout(() => {
+                        this.map.invalidateSize();
+                    }, 100);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        observer.observe(this);
     }
 
     initMap() {
@@ -4943,6 +4959,13 @@ class LocalServicesMap extends HTMLElement {
                     this.map.invalidateSize();
                 }
             }, 100);
+
+            // Additional resize check with longer delay for visibility changes
+            setTimeout(() => {
+                if (this.map) {
+                    this.map.invalidateSize();
+                }
+            }, 500);
 
             // Custom icon for sponsored businesses
             const sponsoredIcon = L.divIcon({
@@ -5004,6 +5027,13 @@ class LocalServicesMap extends HTMLElement {
 
                         // Center map on user location
                         this.map.setView(userPos, 14);
+
+                        // Ensure map resizes properly after location is set
+                        setTimeout(() => {
+                            if (this.map) {
+                                this.map.invalidateSize();
+                            }
+                        }, 100);
                     },
                     () => {
                         console.log('Geolocation failed, using default location');
