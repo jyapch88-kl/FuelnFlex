@@ -1,1 +1,58 @@
-/* Add styles here */
+:root {
+    --primary-color: oklch(98.5% 0.01 240);
+    --text-color: oklch(20% 0.05 240);
+    --accent-color: oklch(65% 0.22 280);
+    --accent-glow: oklch(75% 0.25 280 / 60%);
+    --card-bg: oklch(100% 0 0 / 75%);
+    --shadow-color: oklch(30% 0.05 240 / 25%);
+    --border-color: oklch(92% 0.02 240);
+
+    --font-sans: 'Poppins', sans-serif;
+}
+
+body {
+    font-family: var(--font-sans);
+    margin: 0;
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    background-image: radial-gradient(circle, oklch(95% 0.01 240) 1px, transparent 1px);
+    background-size: 3px 3px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+main {
+    padding: 0 2rem 2rem;
+}
+
+feature-section {
+    display: block;
+    background-color: var(--card-bg);
+    border-radius: 16px;
+    box-shadow: 
+        0 2px 4px var(--shadow-color, rgba(0,0,0,0.05)),
+        0 5px 15px var(--shadow-color, rgba(0,0,0,0.1)),
+        0 20px 40px var(--shadow-color, rgba(0,0,0,0.15));
+    margin: 2rem auto;
+    max-width: 1100px;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    border: 1px solid oklch(100% 0 0 / 20%);
+}
+
+feature-section[style*="display: none"] {
+    display: none !important; 
+}
+
+/* App-wide heading styles */
+h1, h2, h3, h4 {
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+}
+
+h2 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    margin: 0;
+    padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1.5rem, 4vw, 3rem) 0;
+}

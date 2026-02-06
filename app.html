@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel & Flex</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <main-navigation></main-navigation>
+    <main>
+        <feature-section id="dashboard" title="Dashboard">
+            <dashboard-view></dashboard-view>
+        </feature-section>
+        <feature-section id="about-me" title="About Me" style="display: none;">
+            <about-me></about-me>
+        </feature-section>
+        <feature-section id="nutrition-tracking" title="Nutrition Tracking" style="display: none;">
+            <nutrition-tracker></nutrition-tracker>
+        </feature-section>
+        <feature-section id="fitness-goals" title="Fitness Goal Planning" style="display: none;">
+            <goal-planner></goal-planner>
+        </feature-section>
+        <feature-section id="community" title="Community" style="display: none;">
+            <community-board></community-board>
+            <feature-voting></feature-voting>
+        </feature-section>
+    </main>
+    <script src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f4f7f6;
+    color: #333;
+    margin: 0;
+}
+
+admin-dashboard {
+    display: block;
+    padding: 2rem;
+}
