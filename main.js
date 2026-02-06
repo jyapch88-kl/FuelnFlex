@@ -2012,6 +2012,7 @@ class CommunityBoard extends HTMLElement {
         super();
         this.attachShadow({ mode: 'open' });
         this.shadowRoot.innerHTML = `
+            <local-services-map></local-services-map>
             <h3>Community Forum</h3>
             <div id="post-form">
                 <input type="text" id="post-title" placeholder="Post title"/>
@@ -3601,6 +3602,503 @@ class PremiumGate extends HTMLElement {
     }
 }
 
+class LocalServicesMap extends HTMLElement {
+    constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.userLocation = null;
+        this.selectedCategory = 'all';
+
+        // Mock business data with sponsored partnerships
+        this.businesses = [
+            {
+                id: 1,
+                name: 'PowerFit Gym',
+                type: 'gym',
+                sponsored: true,
+                rating: 4.8,
+                distance: 0.8,
+                address: '123 Main St',
+                phone: '555-0101',
+                description: 'Premium gym with state-of-the-art equipment',
+                lat: 37.7749,
+                lng: -122.4194,
+                features: ['24/7 Access', 'Personal Training', 'Group Classes']
+            },
+            {
+                id: 2,
+                name: 'HealthFirst Medical Center',
+                type: 'medical',
+                sponsored: true,
+                rating: 4.9,
+                distance: 1.2,
+                address: '456 Health Ave',
+                phone: '555-0102',
+                description: 'Comprehensive healthcare services',
+                lat: 37.7750,
+                lng: -122.4180,
+                features: ['General Practice', 'Sports Medicine', 'Physical Therapy']
+            },
+            {
+                id: 3,
+                name: 'Zen Yoga Studio',
+                type: 'gym',
+                sponsored: false,
+                rating: 4.7,
+                distance: 1.5,
+                address: '789 Wellness Blvd',
+                phone: '555-0103',
+                description: 'Peaceful yoga and meditation classes',
+                lat: 37.7745,
+                lng: -122.4200,
+                features: ['Yoga', 'Meditation', 'Pilates']
+            },
+            {
+                id: 4,
+                name: 'Elite Sports Therapy',
+                type: 'physical-therapy',
+                sponsored: true,
+                rating: 4.9,
+                distance: 0.5,
+                address: '321 Recovery Rd',
+                phone: '555-0104',
+                description: 'Expert physical therapy and rehabilitation',
+                lat: 37.7755,
+                lng: -122.4190,
+                features: ['Sports Injury', 'Rehabilitation', 'Massage Therapy']
+            },
+            {
+                id: 5,
+                name: 'NutriLife Wellness Center',
+                type: 'nutrition',
+                sponsored: false,
+                rating: 4.6,
+                distance: 2.1,
+                address: '654 Diet Dr',
+                phone: '555-0105',
+                description: 'Nutritionist consultations and meal planning',
+                lat: 37.7740,
+                lng: -122.4210,
+                features: ['Nutrition Counseling', 'Meal Plans', 'Weight Management']
+            },
+            {
+                id: 6,
+                name: 'Iron Temple Fitness',
+                type: 'gym',
+                sponsored: false,
+                rating: 4.5,
+                distance: 1.8,
+                address: '987 Strength St',
+                phone: '555-0106',
+                description: 'Hardcore weightlifting and powerlifting gym',
+                lat: 37.7738,
+                lng: -122.4185,
+                features: ['Weightlifting', 'Powerlifting', 'CrossFit']
+            }
+        ];
+
+        this.render();
+    }
+
+    render() {
+        this.shadowRoot.innerHTML = `
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+            <style>
+                .services-map-container {
+                    background: var(--card-bg, #fff);
+                    border-radius: 12px;
+                    padding: 1.5rem;
+                    margin: 2rem 0;
+                    box-shadow: 0 4px 10px var(--shadow-color, rgba(0,0,0,0.1));
+                }
+                .services-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 1.5rem;
+                    flex-wrap: wrap;
+                    gap: 1rem;
+                }
+                .services-header h3 {
+                    margin: 0;
+                    color: var(--accent-color, #8a2be2);
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .category-filters {
+                    display: flex;
+                    gap: 0.5rem;
+                    flex-wrap: wrap;
+                }
+                .filter-btn {
+                    background: var(--primary-color, #f0f0f0);
+                    border: 1px solid var(--border-color, #ccc);
+                    padding: 0.5rem 1rem;
+                    border-radius: 20px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    font-size: 0.9rem;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.3rem;
+                }
+                .filter-btn:hover {
+                    background: var(--accent-color, #8a2be2);
+                    color: white;
+                    border-color: var(--accent-color, #8a2be2);
+                }
+                .filter-btn.active {
+                    background: var(--accent-color, #8a2be2);
+                    color: white;
+                    border-color: var(--accent-color, #8a2be2);
+                }
+                .map-placeholder {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    border-radius: 12px;
+                    height: 400px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin-bottom: 1.5rem;
+                    position: relative;
+                    overflow: hidden;
+                }
+                .map-placeholder::before {
+                    content: '';
+                    position: absolute;
+                    width: 200%;
+                    height: 200%;
+                    background: repeating-linear-gradient(
+                        45deg,
+                        transparent,
+                        transparent 10px,
+                        rgba(255,255,255,0.05) 10px,
+                        rgba(255,255,255,0.05) 20px
+                    );
+                    animation: mapMove 20s linear infinite;
+                }
+                @keyframes mapMove {
+                    0% { transform: translate(0, 0); }
+                    100% { transform: translate(50px, 50px); }
+                }
+                .map-overlay {
+                    position: relative;
+                    z-index: 1;
+                    color: white;
+                    text-align: center;
+                }
+                .map-overlay .icon {
+                    font-size: 64px;
+                    margin-bottom: 1rem;
+                }
+                .businesses-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                    gap: 1.5rem;
+                }
+                .business-card {
+                    background: white;
+                    border: 1px solid var(--border-color, #eee);
+                    border-radius: 12px;
+                    padding: 1.5rem;
+                    transition: all 0.3s ease;
+                    cursor: pointer;
+                    position: relative;
+                }
+                .business-card:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 8px 20px var(--shadow-color, rgba(0,0,0,0.15));
+                }
+                .business-card.sponsored {
+                    border: 2px solid #FFD700;
+                    background: linear-gradient(135deg, #fff 0%, #fffaf0 100%);
+                }
+                .sponsored-badge {
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    background: linear-gradient(135deg, #FFD700, #FFA500);
+                    color: #333;
+                    padding: 0.3rem 0.7rem;
+                    border-radius: 12px;
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                }
+                .business-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: start;
+                    margin-bottom: 0.8rem;
+                }
+                .business-name {
+                    font-size: 1.2rem;
+                    font-weight: 700;
+                    color: var(--text-color, #333);
+                    margin: 0;
+                }
+                .business-type {
+                    display: inline-block;
+                    background: var(--accent-color, #8a2be2);
+                    color: white;
+                    padding: 0.2rem 0.6rem;
+                    border-radius: 12px;
+                    font-size: 0.75rem;
+                    margin-top: 0.3rem;
+                    text-transform: capitalize;
+                }
+                .rating-distance {
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                    margin-bottom: 0.8rem;
+                }
+                .rating {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.3rem;
+                    font-weight: 600;
+                }
+                .rating .icon {
+                    color: #FFA500;
+                    font-size: 18px;
+                }
+                .distance {
+                    color: #666;
+                    font-size: 0.9rem;
+                }
+                .business-description {
+                    color: #666;
+                    margin: 0.8rem 0;
+                    line-height: 1.5;
+                }
+                .business-features {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0.5rem;
+                    margin: 0.8rem 0;
+                }
+                .feature-tag {
+                    background: var(--primary-color, #f0f0f0);
+                    padding: 0.3rem 0.6rem;
+                    border-radius: 8px;
+                    font-size: 0.8rem;
+                    color: #666;
+                }
+                .business-actions {
+                    display: flex;
+                    gap: 0.8rem;
+                    margin-top: 1rem;
+                }
+                .action-btn {
+                    flex: 1;
+                    padding: 0.7rem;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.3rem;
+                }
+                .action-btn.primary {
+                    background: var(--accent-color, #8a2be2);
+                    color: white;
+                }
+                .action-btn.secondary {
+                    background: white;
+                    color: var(--accent-color, #8a2be2);
+                    border: 1px solid var(--accent-color, #8a2be2);
+                }
+                .action-btn:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 10px var(--shadow-color, rgba(0,0,0,0.2));
+                }
+                .location-prompt {
+                    background: var(--primary-color, #f9f9f9);
+                    padding: 1rem;
+                    border-radius: 8px;
+                    margin-bottom: 1.5rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 1rem;
+                }
+                .location-btn {
+                    background: var(--accent-color, #8a2be2);
+                    color: white;
+                    border: none;
+                    padding: 0.7rem 1.2rem;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    transition: all 0.3s ease;
+                }
+                .location-btn:hover {
+                    box-shadow: 0 0 15px var(--accent-glow, #8a2be280);
+                }
+
+                @media (max-width: 768px) {
+                    .services-map-container {
+                        padding: 1rem;
+                    }
+                    .map-placeholder {
+                        height: 300px;
+                    }
+                    .businesses-grid {
+                        grid-template-columns: 1fr;
+                    }
+                    .category-filters {
+                        width: 100%;
+                    }
+                    .filter-btn {
+                        flex: 1;
+                        justify-content: center;
+                    }
+                }
+            </style>
+
+            <div class="services-map-container">
+                <div class="services-header">
+                    <h3>
+                        <span class="material-symbols-outlined">location_on</span>
+                        Local Health & Fitness Services
+                    </h3>
+                </div>
+
+                <div class="location-prompt">
+                    <span>📍 Enable location to find services near you</span>
+                    <button class="location-btn" id="location-btn">
+                        <span class="material-symbols-outlined">my_location</span>
+                        Get Location
+                    </button>
+                </div>
+
+                <div class="category-filters">
+                    <button class="filter-btn active" data-category="all">
+                        <span class="material-symbols-outlined">grid_view</span>
+                        All
+                    </button>
+                    <button class="filter-btn" data-category="gym">
+                        <span class="material-symbols-outlined">fitness_center</span>
+                        Gyms
+                    </button>
+                    <button class="filter-btn" data-category="medical">
+                        <span class="material-symbols-outlined">local_hospital</span>
+                        Medical
+                    </button>
+                    <button class="filter-btn" data-category="physical-therapy">
+                        <span class="material-symbols-outlined">healing</span>
+                        Physical Therapy
+                    </button>
+                    <button class="filter-btn" data-category="nutrition">
+                        <span class="material-symbols-outlined">restaurant</span>
+                        Nutrition
+                    </button>
+                </div>
+
+                <div class="map-placeholder">
+                    <div class="map-overlay">
+                        <span class="material-symbols-outlined icon">map</span>
+                        <p>Interactive Map View</p>
+                        <p style="font-size: 0.9rem; opacity: 0.9;">In production, this would show Google Maps with real locations</p>
+                    </div>
+                </div>
+
+                <div class="businesses-grid" id="businesses-grid"></div>
+            </div>
+        `;
+
+        this.renderBusinesses();
+    }
+
+    connectedCallback() {
+        // Category filter buttons
+        this.shadowRoot.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.selectedCategory = e.currentTarget.dataset.category;
+                this.shadowRoot.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+                this.renderBusinesses();
+            });
+        });
+
+        // Location button
+        this.shadowRoot.getElementById('location-btn').addEventListener('click', () => {
+            this.requestLocation();
+        });
+    }
+
+    requestLocation() {
+        if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    this.userLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    alert('Location enabled! In a production app, distances would be calculated from your actual location.');
+                },
+                (error) => {
+                    alert('Unable to get your location. Please enable location services.');
+                }
+            );
+        } else {
+            alert('Geolocation is not supported by your browser.');
+        }
+    }
+
+    renderBusinesses() {
+        const container = this.shadowRoot.getElementById('businesses-grid');
+        const filteredBusinesses = this.selectedCategory === 'all'
+            ? this.businesses
+            : this.businesses.filter(b => b.type === this.selectedCategory);
+
+        // Sort sponsored businesses first
+        filteredBusinesses.sort((a, b) => (b.sponsored ? 1 : 0) - (a.sponsored ? 1 : 0));
+
+        container.innerHTML = filteredBusinesses.map(business => `
+            <div class="business-card ${business.sponsored ? 'sponsored' : ''}">
+                ${business.sponsored ? '<div class="sponsored-badge">⭐ Sponsored Partner</div>' : ''}
+                <div class="business-header">
+                    <div>
+                        <h4 class="business-name">${business.name}</h4>
+                        <span class="business-type">${business.type.replace('-', ' ')}</span>
+                    </div>
+                </div>
+                <div class="rating-distance">
+                    <div class="rating">
+                        <span class="material-symbols-outlined icon">star</span>
+                        ${business.rating}
+                    </div>
+                    <div class="distance">📍 ${business.distance} km away</div>
+                </div>
+                <p class="business-description">${business.description}</p>
+                <div class="business-features">
+                    ${business.features.map(f => `<span class="feature-tag">${f}</span>`).join('')}
+                </div>
+                <div class="business-actions">
+                    <button class="action-btn primary" onclick="window.location.href='tel:${business.phone}'">
+                        <span class="material-symbols-outlined">call</span>
+                        Call
+                    </button>
+                    <button class="action-btn secondary" onclick="window.open('https://maps.google.com/?q=${encodeURIComponent(business.address)}', '_blank')">
+                        <span class="material-symbols-outlined">directions</span>
+                        Directions
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
 customElements.define('main-navigation', MainNavigation);
 customElements.define('feature-section', FeatureSection);
 customElements.define('nutrition-tracker', NutritionTracker);
@@ -3613,3 +4111,4 @@ customElements.define('about-me', AboutMe);
 customElements.define('ai-health-chat', AIHealthChat);
 customElements.define('pricing-modal', PricingModal);
 customElements.define('premium-gate', PremiumGate);
+customElements.define('local-services-map', LocalServicesMap);
