@@ -3,6 +3,7 @@ class MainNavigation extends HTMLElement {
         super();
         this.attachShadow({ mode: 'open' });
         this.shadowRoot.innerHTML = `
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
             <style>
                 :host {
                     display: block;
@@ -31,12 +32,22 @@ class MainNavigation extends HTMLElement {
                     border-radius: 8px;
                     transition: all 0.3s ease;
                     text-decoration: none;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
                 }
                 button:hover, a:hover, button.active {
                     background-color: var(--accent-color, #8a2be2);
                     color: white;
                     /* Glow effect */
                     box-shadow: 0 0 15px var(--accent-glow, #8a2be280);
+                }
+                .icon {
+                  font-variation-settings:
+                  'FILL' 0,
+                  'wght' 400,
+                  'GRAD' 0,
+                  'opsz' 24
                 }
             </style>
             <nav>
@@ -46,6 +57,10 @@ class MainNavigation extends HTMLElement {
                 <button data-target="nutrition-tracking">Nutrition Tracking</button>
                 <button data-target="fitness-goals">Fitness Goal Planning</button>
                 <button data-target="community">Community</button>
+                <button data-target="ai-health-chat">
+                    <span class="material-symbols-outlined icon">smart_toy</span>
+                    AI Health Chat
+                </button>
                 <a href="admin.html">Admin</a>
             </nav>
         `;
@@ -651,6 +666,134 @@ class AboutMe extends HTMLElement {
     }
 }
 
+class AIHealthChat extends HTMLElement {
+    constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.innerHTML = `
+            <style>
+                .chat-container {
+                    max-width: 800px;
+                    margin: 0 auto;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    border: 1px solid var(--border-color, #eee);
+                    box-shadow: 0 4px 10px var(--shadow-color, rgba(0,0,0,0.1));
+                }
+                .chat-window {
+                    height: 400px;
+                    padding: 1rem;
+                    overflow-y: auto;
+                    background-color: var(--card-bg, #fff);
+                }
+                .chat-message {
+                    margin-bottom: 1rem;
+                }
+                .chat-message.user {
+                    text-align: right;
+                }
+                .message-bubble {
+                    display: inline-block;
+                    padding: 0.8rem 1.2rem;
+                    border-radius: 18px;
+                    max-width: 80%;
+                }
+                .chat-message.user .message-bubble {
+                    background-color: var(--accent-color, #8a2be2);
+                    color: white;
+                }
+                .chat-message.bot .message-bubble {
+                    background-color: var(--primary-color, #f0f0f0);
+                }
+                .chat-input {
+                    display: flex;
+                    padding: 1rem;
+                    border-top: 1px solid var(--border-color, #eee);
+                    align-items: center;
+                }
+                .chat-input input {
+                    flex-grow: 1;
+                    border: 1px solid var(--border-color, #ccc);
+                    border-radius: 8px;
+                    padding: 0.8rem;
+                    font-size: 1rem;
+                    margin-right: 1rem;
+                }
+                .specialist-buttons button {
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    padding: 0.5rem;
+                }
+                 .specialist-buttons .icon {
+                    font-size: 28px;
+                    color: var(--text-color, #333);
+                 }
+            </style>
+            <div class="chat-container">
+                <div class="chat-window">
+                     <div class="chat-message bot">
+                        <div class="message-bubble">Hello! I'm your AI Health Assistant. How can I help you today?</div>
+                    </div>
+                </div>
+                <div class="chat-input">
+                    <input type="text" placeholder="Type your message...">
+                    <div class="specialist-buttons">
+                        <button data-role="Doctor" title="Talk to a Doctor"><span class="material-symbols-outlined icon">medical_services</span></button>
+                        <button data-role="Coach" title="Talk to a Coach"><span class="material-symbols-outlined icon">fitness_center</span></button>
+                        <button data-role="Dietitian" title="Talk to a Dietitian"><span class="material-symbols-outlined icon">restaurant</span></button>
+                    </div>
+                    <button id="send-btn">Send</button>
+                </div>
+            </div>
+        `;
+    }
+
+    connectedCallback() {
+        const chatInput = this.shadowRoot.querySelector('.chat-input input');
+        const sendButton = this.shadowRoot.getElementById('send-btn');
+        const chatWindow = this.shadowRoot.querySelector('.chat-window');
+
+        sendButton.addEventListener('click', () => {
+            this.sendMessage(chatInput, chatWindow);
+        });
+
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.sendMessage(chatInput, chatWindow);
+            }
+        });
+
+        this.shadowRoot.querySelectorAll('.specialist-buttons button').forEach(button => {
+            button.addEventListener('click', () => {
+                const role = button.dataset.role;
+                this.addMessage(`You have requested to speak with a ${role}. A specialist will be with you shortly.`, 'bot', chatWindow);
+            });
+        });
+    }
+
+    sendMessage(chatInput, chatWindow) {
+        const message = chatInput.value.trim();
+        if (!message) return;
+
+        this.addMessage(message, 'user', chatWindow);
+        chatInput.value = '';
+
+        // Mock bot response
+        setTimeout(() => {
+            this.addMessage("I'm sorry, I'm just a demo, so I can't really help with that. But I can connect you with a specialist!", 'bot', chatWindow);
+        }, 1000);
+    }
+
+    addMessage(message, sender, chatWindow) {
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('chat-message', sender);
+        messageElement.innerHTML = `<div class="message-bubble">${message}</div>`;
+        chatWindow.appendChild(messageElement);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+}
+
 customElements.define('main-navigation', MainNavigation);
 customElements.define('feature-section', FeatureSection);
 customElements.define('nutrition-tracker', NutritionTracker);
@@ -660,3 +803,4 @@ customElements.define('community-board', CommunityBoard);
 customElements.define('post-card', PostCard);
 customElements.define('feature-voting', FeatureVoting);
 customElements.define('about-me', AboutMe);
+customElements.define('ai-health-chat', AIHealthChat);
