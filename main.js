@@ -1291,77 +1291,543 @@ class GoalPlanner extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
+        this.marathonPlan = null;
+
         this.shadowRoot.innerHTML = `
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
             <style>
+                .goal-planner-container {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                }
                 .goal-selection {
                     margin-bottom: 2rem;
                     text-align: center;
+                    background: var(--card-bg, #fff);
+                    padding: 2rem;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 10px var(--shadow-color, rgba(0,0,0,0.1));
                 }
-                select {
+                .goal-selection label {
+                    display: block;
+                    margin-bottom: 1rem;
+                    font-size: 1.2rem;
+                    font-weight: 600;
+                    color: var(--text-color, #333);
+                }
+                select, input {
                     font-size: 1rem;
                     padding: 0.8rem;
                     border-radius: 8px;
                     border: 1px solid var(--border-color, #ccc);
+                    font-family: inherit;
                 }
                 .plan {
+                    background: var(--card-bg, #fff);
+                    padding: 2rem;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 10px var(--shadow-color, rgba(0,0,0,0.1));
+                    display: none;
+                }
+                .plan.active {
+                    display: block;
+                }
+                .plan h3 {
+                    margin-top: 0;
+                    color: var(--accent-color, #8a2be2);
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .plan ul {
+                    list-style: none;
+                    padding: 0;
+                }
+                .plan li {
+                    padding: 0.8rem;
+                    margin-bottom: 0.5rem;
+                    background: var(--primary-color, #f9f9f9);
+                    border-radius: 8px;
+                    border-left: 4px solid var(--accent-color, #8a2be2);
+                }
+                .marathon-inputs {
+                    background: var(--card-bg, #fff);
+                    padding: 2rem;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 10px var(--shadow-color, rgba(0,0,0,0.1));
+                    margin-bottom: 2rem;
+                    display: none;
+                }
+                .marathon-inputs.active {
+                    display: block;
+                }
+                .input-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    gap: 1.5rem;
+                    margin-bottom: 1.5rem;
+                }
+                .input-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                }
+                .input-group label {
+                    font-weight: 600;
+                    color: var(--text-color, #333);
+                }
+                .time-inputs {
+                    display: flex;
+                    gap: 0.5rem;
+                    align-items: center;
+                }
+                .time-inputs input {
+                    width: 80px;
+                }
+                .generate-btn {
+                    background: var(--accent-color, #8a2be2);
+                    color: white;
+                    border: none;
+                    padding: 1rem 2rem;
+                    border-radius: 8px;
+                    font-size: 1rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    justify-content: center;
+                    width: 100%;
+                }
+                .generate-btn:hover {
+                    box-shadow: 0 0 15px var(--accent-glow, #8a2be280);
+                    transform: translateY(-2px);
+                }
+                .training-plan-header {
+                    background: linear-gradient(135deg, var(--accent-color, #8a2be2), oklch(65% 0.3 320));
+                    color: white;
+                    padding: 1.5rem;
+                    border-radius: 12px;
+                    margin-bottom: 1.5rem;
+                }
+                .plan-stats {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                    gap: 1rem;
+                    margin-top: 1rem;
+                }
+                .stat-item {
+                    text-align: center;
+                }
+                .stat-value {
+                    font-size: 1.8rem;
+                    font-weight: 700;
+                    display: block;
+                }
+                .stat-label {
+                    font-size: 0.9rem;
+                    opacity: 0.9;
+                }
+                .week-container {
+                    margin-bottom: 1.5rem;
+                }
+                .week-header {
+                    background: var(--accent-color, #8a2be2);
+                    color: white;
+                    padding: 1rem;
+                    border-radius: 8px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                }
+                .week-header:hover {
+                    transform: translateX(5px);
+                }
+                .week-header h4 {
+                    margin: 0;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .week-details {
+                    background: var(--primary-color, #f9f9f9);
+                    border-radius: 0 0 8px 8px;
+                    overflow: hidden;
+                    max-height: 0;
+                    transition: max-height 0.3s ease;
+                }
+                .week-details.expanded {
+                    max-height: 1000px;
+                    border: 1px solid var(--border-color, #eee);
+                    border-top: none;
+                }
+                .day-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 1rem;
+                    padding: 1rem;
+                }
+                .day-card {
+                    background: white;
+                    padding: 1rem;
+                    border-radius: 8px;
+                    border: 1px solid var(--border-color, #eee);
+                    transition: all 0.3s ease;
+                }
+                .day-card:hover {
+                    box-shadow: 0 4px 10px var(--shadow-color, rgba(0,0,0,0.1));
+                    transform: translateY(-2px);
+                }
+                .day-card.rest {
+                    background: #f0f0f0;
+                    opacity: 0.8;
+                }
+                .day-name {
+                    font-weight: 700;
+                    color: var(--accent-color, #8a2be2);
+                    margin-bottom: 0.5rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.3rem;
+                }
+                .workout-type {
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    color: #666;
+                    margin-bottom: 0.3rem;
+                }
+                .workout-details {
+                    font-size: 0.9rem;
+                    color: #333;
+                    line-height: 1.4;
+                }
+                .workout-icon {
+                    font-size: 18px;
+                }
+                .run-type-easy { color: #51cf66; }
+                .run-type-tempo { color: #ff922b; }
+                .run-type-long { color: #339af0; }
+                .run-type-intervals { color: #ff6b6b; }
+                .run-type-recovery { color: #868e96; }
+                .tips-section {
                     background: var(--primary-color, #f9f9f9);
                     padding: 1.5rem;
                     border-radius: 12px;
-                    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+                    margin-top: 2rem;
+                    border-left: 4px solid var(--accent-color, #8a2be2);
+                }
+                .tips-section h4 {
+                    margin-top: 0;
+                    color: var(--accent-color, #8a2be2);
+                }
+                .tips-section ul {
+                    margin: 0;
+                    padding-left: 1.5rem;
+                }
+                .tips-section li {
+                    margin-bottom: 0.5rem;
+                    line-height: 1.6;
                 }
             </style>
-            <div class="goal-selection">
-                <label for="goal-select">Select Your Goal: </label>
-                <select id="goal-select">
-                    <option value="">--Choose a Goal--</option>
-                    <option value="weight-loss">Weight Loss</option>
-                    <option value="muscle-gain">Muscle Gain</option>
-                    <option value="marathon-training">Marathon Training</option>
-                </select>
-            </div>
-            <div class="plan" style="display: none;">
-                <h3>Your Personalized Plan</h3>
-                <ul id="plan-steps"></ul>
+
+            <div class="goal-planner-container">
+                <div class="goal-selection">
+                    <label for="goal-select">Select Your Fitness Goal</label>
+                    <select id="goal-select">
+                        <option value="">--Choose a Goal--</option>
+                        <option value="weight-loss">Weight Loss</option>
+                        <option value="muscle-gain">Muscle Gain</option>
+                        <option value="marathon-training">Marathon Training</option>
+                    </select>
+                </div>
+
+                <div class="marathon-inputs" id="marathon-inputs">
+                    <h3>
+                        <span class="material-symbols-outlined">directions_run</span>
+                        Marathon Training Setup
+                    </h3>
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label for="target-time">Target Race Time</label>
+                            <div class="time-inputs">
+                                <input type="number" id="target-hours" min="2" max="6" placeholder="Hours" value="4">
+                                <span>:</span>
+                                <input type="number" id="target-minutes" min="0" max="59" placeholder="Min" value="0">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="training-weeks">Training Period (Weeks)</label>
+                            <input type="number" id="training-weeks" min="8" max="24" placeholder="12-16 weeks recommended" value="16">
+                        </div>
+                        <div class="input-group">
+                            <label for="current-mileage">Current Weekly Mileage (km)</label>
+                            <input type="number" id="current-mileage" min="0" max="100" placeholder="e.g., 20" value="20">
+                        </div>
+                    </div>
+                    <button class="generate-btn" id="generate-marathon-btn">
+                        <span class="material-symbols-outlined">auto_awesome</span>
+                        Generate Training Plan
+                    </button>
+                </div>
+
+                <div class="plan" id="general-plan">
+                    <h3>
+                        <span class="material-symbols-outlined">checklist</span>
+                        Your Personalized Plan
+                    </h3>
+                    <ul id="plan-steps"></ul>
+                </div>
+
+                <div class="plan" id="marathon-plan"></div>
             </div>
         `;
     }
 
     connectedCallback() {
-        this.shadowRoot.getElementById('goal-select').addEventListener('change', (event) => this.generatePlan(event));
+        this.shadowRoot.getElementById('goal-select').addEventListener('change', (e) => this.handleGoalChange(e));
+        this.shadowRoot.getElementById('generate-marathon-btn').addEventListener('click', () => this.generateMarathonPlan());
     }
 
-    generatePlan(event) {
+    handleGoalChange(event) {
         const goal = event.target.value;
-        const planContainer = this.shadowRoot.querySelector('.plan');
-        const planSteps = this.shadowRoot.getElementById('plan-steps');
-        if (!goal) {
-            planContainer.style.display = 'none';
-            return;
+        const marathonInputs = this.shadowRoot.getElementById('marathon-inputs');
+        const generalPlan = this.shadowRoot.getElementById('general-plan');
+        const marathonPlanDiv = this.shadowRoot.getElementById('marathon-plan');
+
+        // Hide all plans
+        marathonInputs.classList.remove('active');
+        generalPlan.classList.remove('active');
+        marathonPlanDiv.classList.remove('active');
+
+        if (!goal) return;
+
+        if (goal === 'marathon-training') {
+            marathonInputs.classList.add('active');
+        } else {
+            this.generateSimplePlan(goal);
         }
+    }
+
+    generateSimplePlan(goal) {
+        const generalPlan = this.shadowRoot.getElementById('general-plan');
+        const planSteps = this.shadowRoot.getElementById('plan-steps');
 
         let steps = [];
         if (goal === 'weight-loss') {
             steps = [
-                'Consume a 500-calorie deficit each day.',
-                'Engage in 30 minutes of cardio, 5 days a week.',
-                'Incorporate strength training 3 days a week.',
+                'Consume a 500-calorie deficit each day to lose ~0.5kg per week',
+                'Engage in 30 minutes of cardio, 5 days a week',
+                'Incorporate strength training 3 days a week to preserve muscle',
+                'Track your meals using the Nutrition Tracking feature',
+                'Stay hydrated - aim for 8 glasses of water daily',
+                'Get 7-9 hours of quality sleep each night'
             ];
         } else if (goal === 'muscle-gain') {
             steps = [
-                'Consume a 500-calorie surplus each day.',
-                'Lift heavy weights 4-5 days a week.',
-                'Ensure adequate protein intake (1.6g per kg of body weight).'
-            ];
-        } else if (goal === 'marathon-training') {
-            steps = [
-                'Follow a structured running plan with long runs, tempo runs, and recovery days.',
-                'Incorporate cross-training to prevent injuries.',
-                'Focus on proper nutrition and hydration.',
+                'Consume a 300-500 calorie surplus each day',
+                'Lift heavy weights 4-5 days a week with progressive overload',
+                'Ensure adequate protein intake (1.6-2.2g per kg of body weight)',
+                'Focus on compound exercises: squats, deadlifts, bench press, rows',
+                'Allow 48 hours recovery between training the same muscle group',
+                'Track your strength progress weekly'
             ];
         }
 
         planSteps.innerHTML = steps.map(step => `<li>${step}</li>`).join('');
-        planContainer.style.display = 'block';
+        generalPlan.classList.add('active');
+    }
+
+    generateMarathonPlan() {
+        const hours = parseInt(this.shadowRoot.getElementById('target-hours').value) || 4;
+        const minutes = parseInt(this.shadowRoot.getElementById('target-minutes').value) || 0;
+        const weeks = parseInt(this.shadowRoot.getElementById('training-weeks').value) || 16;
+        const currentMileage = parseInt(this.shadowRoot.getElementById('current-mileage').value) || 20;
+
+        const targetTimeMinutes = hours * 60 + minutes;
+        const pacePerKm = targetTimeMinutes / 42.195; // Marathon distance
+
+        // Calculate peak mileage (typically 70-80% through training)
+        const peakWeek = Math.floor(weeks * 0.75);
+        const peakMileage = Math.min(currentMileage * 2.5, 80); // Cap at 80km
+
+        const plan = this.createWeeklyPlan(weeks, currentMileage, peakMileage, peakWeek, pacePerKm);
+
+        this.renderMarathonPlan(plan, hours, minutes, weeks, pacePerKm);
+    }
+
+    createWeeklyPlan(totalWeeks, startMileage, peakMileage, peakWeek, pacePerKm) {
+        const plan = [];
+
+        for (let week = 1; week <= totalWeeks; week++) {
+            let weeklyMileage;
+
+            // Build up phase
+            if (week <= peakWeek) {
+                const progress = week / peakWeek;
+                weeklyMileage = startMileage + (peakMileage - startMileage) * progress;
+            }
+            // Taper phase
+            else {
+                const taperProgress = (week - peakWeek) / (totalWeeks - peakWeek);
+                weeklyMileage = peakMileage * (1 - taperProgress * 0.6); // Reduce by up to 60%
+            }
+
+            const weekPlan = this.generateWeekSchedule(week, Math.round(weeklyMileage), pacePerKm, week === totalWeeks);
+            plan.push(weekPlan);
+        }
+
+        return plan;
+    }
+
+    generateWeekSchedule(weekNum, totalMileage, pacePerKm, isRaceWeek) {
+        if (isRaceWeek) {
+            return {
+                week: weekNum,
+                totalMileage,
+                days: [
+                    { day: 'Monday', type: 'Easy Run', distance: 5, description: 'Light recovery run, very easy pace' },
+                    { day: 'Tuesday', type: 'Rest', distance: 0, description: 'Complete rest or light stretching' },
+                    { day: 'Wednesday', type: 'Easy Run', distance: 3, description: 'Very short easy run to keep legs loose' },
+                    { day: 'Thursday', type: 'Rest', distance: 0, description: 'Rest and prepare race gear' },
+                    { day: 'Friday', type: 'Rest', distance: 0, description: 'Complete rest, hydrate well' },
+                    { day: 'Saturday', type: 'Rest', distance: 0, description: 'Pre-race rest, early night' },
+                    { day: 'Sunday', type: 'RACE DAY!', distance: 42.195, description: '🏃‍♂️ Marathon Race Day - You\'ve got this!' }
+                ]
+            };
+        }
+
+        const longRunDistance = Math.round(totalMileage * 0.35); // 35% of weekly mileage
+        const tempoDistance = Math.round(totalMileage * 0.20); // 20%
+        const easyRun1 = Math.round(totalMileage * 0.15); // 15%
+        const easyRun2 = Math.round(totalMileage * 0.15); // 15%
+        const recoveryRun = Math.round(totalMileage * 0.15); // 15%
+
+        return {
+            week: weekNum,
+            totalMileage,
+            days: [
+                { day: 'Monday', type: 'Rest', distance: 0, description: 'Rest or cross-training (swimming, cycling)' },
+                { day: 'Tuesday', type: 'Easy Run', distance: easyRun1, description: `${easyRun1}km at comfortable pace, ${this.formatPace(pacePerKm + 0.5)} min/km` },
+                { day: 'Wednesday', type: 'Tempo Run', distance: tempoDistance, description: `${tempoDistance}km at ${this.formatPace(pacePerKm - 0.2)} min/km - comfortably hard` },
+                { day: 'Thursday', type: 'Recovery Run', distance: recoveryRun, description: `${recoveryRun}km very easy pace, focus on form` },
+                { day: 'Friday', type: 'Rest', distance: 0, description: 'Active recovery: yoga, stretching, or complete rest' },
+                { day: 'Saturday', type: 'Intervals', distance: easyRun2, description: `${easyRun2}km with 5-8 x 800m at ${this.formatPace(pacePerKm - 0.3)} min/km` },
+                { day: 'Sunday', type: 'Long Run', distance: longRunDistance, description: `${longRunDistance}km at ${this.formatPace(pacePerKm + 0.3)} min/km - build endurance` }
+            ]
+        };
+    }
+
+    formatPace(paceMinPerKm) {
+        const minutes = Math.floor(paceMinPerKm);
+        const seconds = Math.round((paceMinPerKm - minutes) * 60);
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    renderMarathonPlan(plan, hours, minutes, weeks, pacePerKm) {
+        const marathonPlanDiv = this.shadowRoot.getElementById('marathon-plan');
+        const totalDistance = plan.reduce((sum, week) => sum + week.totalMileage, 0);
+
+        marathonPlanDiv.innerHTML = `
+            <div class="training-plan-header">
+                <h3 style="margin: 0 0 1rem 0;">
+                    <span class="material-symbols-outlined">emoji_events</span>
+                    Your ${weeks}-Week Marathon Training Plan
+                </h3>
+                <div class="plan-stats">
+                    <div class="stat-item">
+                        <span class="stat-value">${hours}:${minutes.toString().padStart(2, '0')}</span>
+                        <span class="stat-label">Target Time</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">${this.formatPace(pacePerKm)}</span>
+                        <span class="stat-label">Target Pace</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">${weeks}</span>
+                        <span class="stat-label">Weeks</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">${Math.round(totalDistance)}</span>
+                        <span class="stat-label">Total KM</span>
+                    </div>
+                </div>
+            </div>
+
+            ${plan.map(week => `
+                <div class="week-container">
+                    <div class="week-header" onclick="this.nextElementSibling.classList.toggle('expanded')">
+                        <h4>
+                            <span class="material-symbols-outlined">calendar_month</span>
+                            Week ${week.week} - ${week.totalMileage}km total
+                        </h4>
+                        <span class="material-symbols-outlined">expand_more</span>
+                    </div>
+                    <div class="week-details">
+                        <div class="day-grid">
+                            ${week.days.map(day => `
+                                <div class="day-card ${day.type === 'Rest' ? 'rest' : ''}">
+                                    <div class="day-name">
+                                        <span class="material-symbols-outlined workout-icon ${this.getRunTypeClass(day.type)}">
+                                            ${this.getWorkoutIcon(day.type)}
+                                        </span>
+                                        ${day.day}
+                                    </div>
+                                    <div class="workout-type">${day.type}</div>
+                                    <div class="workout-details">
+                                        ${day.distance > 0 ? `<strong>${day.distance}km</strong><br>` : ''}
+                                        ${day.description}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+
+            <div class="tips-section">
+                <h4>
+                    <span class="material-symbols-outlined">lightbulb</span>
+                    Training Tips
+                </h4>
+                <ul>
+                    <li><strong>Listen to your body:</strong> If you feel excessive fatigue or pain, take an extra rest day</li>
+                    <li><strong>Nutrition:</strong> Fuel properly before long runs, aim for 30-60g carbs per hour during runs over 90 minutes</li>
+                    <li><strong>Hydration:</strong> Drink water regularly throughout the day, not just during runs</li>
+                    <li><strong>Recovery:</strong> Get 7-9 hours of sleep, consider foam rolling and stretching</li>
+                    <li><strong>Race Day:</strong> Don't try anything new - stick to tested shoes, clothes, and nutrition</li>
+                    <li><strong>Pace:</strong> The first half should feel easy - negative splits are ideal</li>
+                </ul>
+            </div>
+        `;
+
+        marathonPlanDiv.classList.add('active');
+
+        // Scroll to the plan
+        marathonPlanDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    getWorkoutIcon(type) {
+        const icons = {
+            'Rest': 'hotel',
+            'Easy Run': 'directions_walk',
+            'Tempo Run': 'speed',
+            'Recovery Run': 'self_improvement',
+            'Intervals': 'bolt',
+            'Long Run': 'landscape',
+            'RACE DAY!': 'emoji_events'
+        };
+        return icons[type] || 'directions_run';
+    }
+
+    getRunTypeClass(type) {
+        if (type.includes('Easy') || type.includes('Recovery')) return 'run-type-easy';
+        if (type.includes('Tempo')) return 'run-type-tempo';
+        if (type.includes('Long')) return 'run-type-long';
+        if (type.includes('Intervals')) return 'run-type-intervals';
+        return 'run-type-recovery';
     }
 }
 
