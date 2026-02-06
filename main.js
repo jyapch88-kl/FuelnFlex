@@ -1135,34 +1135,47 @@ class DashboardView extends HTMLElement {
                     height: 200px;
                     gap: 0.5rem;
                     padding: 1rem 0;
+                    background: var(--primary-color, #f9f9f9);
+                    border-radius: 8px;
                 }
                 .bar-container {
                     flex: 1;
                     display: flex;
                     flex-direction: column;
                     align-items: center;
+                    justify-content: flex-end;
                     gap: 0.5rem;
+                    height: 100%;
+                    position: relative;
                 }
                 .bar {
                     width: 100%;
+                    max-width: 60px;
                     background: linear-gradient(180deg, var(--accent-color, #8a2be2), oklch(65% 0.3 320));
                     border-radius: 8px 8px 0 0;
-                    transition: height 0.5s ease-in-out;
+                    transition: all 0.5s ease-in-out;
                     position: relative;
+                    min-height: 20px;
+                    display: flex;
+                    align-items: flex-start;
+                    justify-content: center;
+                    box-shadow: 0 2px 8px rgba(138, 43, 226, 0.3);
                 }
                 .bar-label {
                     font-size: 0.8rem;
                     font-weight: 600;
                     color: var(--text-color, #333);
+                    margin-top: 0.5rem;
                 }
                 .bar-value {
-                    font-size: 0.7rem;
+                    font-size: 0.75rem;
                     color: white;
-                    font-weight: 600;
+                    font-weight: 700;
                     position: absolute;
-                    top: -20px;
+                    top: 8px;
                     left: 50%;
                     transform: translateX(-50%);
+                    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
                 }
                 .streak-badge {
                     background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
