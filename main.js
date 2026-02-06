@@ -189,12 +189,81 @@ class DashboardView extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
+
+        // Initialize data
+        this.data = {
+            nutrition: { current: 1500, goal: 2500 },
+            workouts: { current: 3, goal: 5 },
+            water: { current: 6, goal: 8 },
+            steps: { current: 7500, goal: 10000 },
+            sleep: { current: 6.5, goal: 8 },
+            weight: { current: 75, goal: 70 }
+        };
+
         this.shadowRoot.innerHTML = `
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
             <style>
+                .dashboard-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 2rem;
+                    flex-wrap: wrap;
+                    gap: 1rem;
+                }
+                .date-selector {
+                    display: flex;
+                    gap: 0.5rem;
+                    align-items: center;
+                }
+                .date-selector button {
+                    background: var(--card-bg, #fff);
+                    border: 1px solid var(--border-color, #ccc);
+                    padding: 0.5rem 1rem;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    font-weight: 600;
+                }
+                .date-selector button.active {
+                    background-color: var(--accent-color, #8a2be2);
+                    color: white;
+                    border-color: var(--accent-color, #8a2be2);
+                }
+                .date-selector button:hover {
+                    box-shadow: 0 0 10px var(--accent-glow, #8a2be280);
+                }
+                .quick-actions {
+                    display: flex;
+                    gap: 1rem;
+                    margin-bottom: 2rem;
+                    flex-wrap: wrap;
+                }
+                .quick-action-btn {
+                    background-color: var(--accent-color, #8a2be2);
+                    color: white;
+                    border: none;
+                    padding: 0.8rem 1.5rem;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    transition: all 0.3s ease;
+                }
+                .quick-action-btn:hover {
+                    box-shadow: 0 0 15px var(--accent-glow, #8a2be280);
+                    transform: translateY(-2px);
+                }
+                .quick-action-btn .icon {
+                    font-size: 20px;
+                }
                 .dashboard-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                    gap: 2rem;
+                    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                    gap: 1.5rem;
+                    margin-bottom: 2rem;
                 }
                 .dashboard-card {
                     background: var(--card-bg, #fff);
@@ -202,11 +271,36 @@ class DashboardView extends HTMLElement {
                     border-radius: 12px;
                     box-shadow: 0 4px 10px var(--shadow-color, rgba(0,0,0,0.1));
                     border: 1px solid var(--border-color, #eee);
+                    transition: all 0.3s ease;
+                    cursor: pointer;
                 }
-                h3 {
-                    margin-top: 0;
+                .dashboard-card:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 6px 15px var(--shadow-color, rgba(0,0,0,0.15));
+                }
+                .card-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 1rem;
+                }
+                .card-header h3 {
+                    margin: 0;
                     font-weight: 600;
                     color: var(--accent-color, #8a2be2);
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .card-icon {
+                    font-size: 24px;
+                    color: var(--accent-color, #8a2be2);
+                }
+                .card-value {
+                    font-size: 1.8rem;
+                    font-weight: 700;
+                    margin: 0.5rem 0;
+                    color: var(--text-color, #333);
                 }
                 .progress-bar {
                     width: 100%;
@@ -214,9 +308,10 @@ class DashboardView extends HTMLElement {
                     border-radius: 8px;
                     overflow: hidden;
                     height: 24px;
+                    margin: 0.5rem 0;
                 }
                 .progress {
-                    background-color: var(--accent-color, #8a2be2);
+                    background: linear-gradient(90deg, var(--accent-color, #8a2be2), oklch(65% 0.3 320));
                     height: 100%;
                     display: flex;
                     align-items: center;
@@ -225,24 +320,358 @@ class DashboardView extends HTMLElement {
                     font-weight: 600;
                     transition: width 0.5s ease-in-out;
                 }
+                .edit-input {
+                    width: 80px;
+                    padding: 0.3rem;
+                    border: 1px solid var(--border-color, #ccc);
+                    border-radius: 4px;
+                    font-size: 0.9rem;
+                }
+                .chart-container {
+                    background: var(--card-bg, #fff);
+                    padding: 1.5rem;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 10px var(--shadow-color, rgba(0,0,0,0.1));
+                    border: 1px solid var(--border-color, #eee);
+                    margin-bottom: 2rem;
+                }
+                .chart-container h3 {
+                    margin-top: 0;
+                    font-weight: 600;
+                    color: var(--accent-color, #8a2be2);
+                }
+                .chart {
+                    display: flex;
+                    align-items: flex-end;
+                    justify-content: space-around;
+                    height: 200px;
+                    gap: 0.5rem;
+                    padding: 1rem 0;
+                }
+                .bar-container {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .bar {
+                    width: 100%;
+                    background: linear-gradient(180deg, var(--accent-color, #8a2be2), oklch(65% 0.3 320));
+                    border-radius: 8px 8px 0 0;
+                    transition: height 0.5s ease-in-out;
+                    position: relative;
+                }
+                .bar-label {
+                    font-size: 0.8rem;
+                    font-weight: 600;
+                    color: var(--text-color, #333);
+                }
+                .bar-value {
+                    font-size: 0.7rem;
+                    color: white;
+                    font-weight: 600;
+                    position: absolute;
+                    top: -20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                }
+                .streak-badge {
+                    background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+                    color: white;
+                    padding: 0.5rem 1rem;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .motivational-quote {
+                    background: linear-gradient(135deg, var(--accent-color, #8a2be2), oklch(65% 0.3 320));
+                    color: white;
+                    padding: 1.5rem;
+                    border-radius: 12px;
+                    text-align: center;
+                    font-size: 1.1rem;
+                    font-style: italic;
+                    margin-bottom: 2rem;
+                    box-shadow: 0 4px 10px var(--shadow-color, rgba(0,0,0,0.1));
+                }
             </style>
-            <div class="dashboard-grid">
-                <div class="dashboard-card">
-                    <h3>Nutrition Goal</h3>
-                    <p>1500 / 2500 kcal</p>
-                    <div class="progress-bar">
-                        <div class="progress" style="width: 60%;">60%</div>
+            <div class="dashboard-header">
+                <div>
+                    <h2 style="margin: 0;">My Dashboard</h2>
+                    <div class="streak-badge">
+                        <span class="material-symbols-outlined">local_fire_department</span>
+                        7 Day Streak!
                     </div>
                 </div>
-                <div class="dashboard-card">
-                    <h3>Fitness Goal</h3>
-                    <p>3 / 5 workouts this week</p>
+                <div class="date-selector">
+                    <button class="active" data-range="today">Today</button>
+                    <button data-range="week">This Week</button>
+                    <button data-range="month">This Month</button>
+                </div>
+            </div>
+
+            <div class="motivational-quote">
+                "The only bad workout is the one that didn't happen."
+            </div>
+
+            <div class="quick-actions">
+                <button class="quick-action-btn" data-action="meal">
+                    <span class="material-symbols-outlined icon">restaurant</span>
+                    Log Meal
+                </button>
+                <button class="quick-action-btn" data-action="workout">
+                    <span class="material-symbols-outlined icon">fitness_center</span>
+                    Log Workout
+                </button>
+                <button class="quick-action-btn" data-action="water">
+                    <span class="material-symbols-outlined icon">water_drop</span>
+                    Add Water
+                </button>
+                <button class="quick-action-btn" data-action="weight">
+                    <span class="material-symbols-outlined icon">monitor_weight</span>
+                    Update Weight
+                </button>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="dashboard-card" data-card="nutrition">
+                    <div class="card-header">
+                        <h3>
+                            <span class="material-symbols-outlined card-icon">restaurant</span>
+                            Calories
+                        </h3>
+                    </div>
+                    <div class="card-value">
+                        <span id="nutrition-current">1500</span> / <span id="nutrition-goal">2500</span>
+                        <span style="font-size: 0.8rem;">kcal</span>
+                    </div>
                     <div class="progress-bar">
-                        <div class="progress" style="width: 60%;">60%</div>
+                        <div class="progress" id="nutrition-progress" style="width: 60%;">60%</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-card" data-card="workouts">
+                    <div class="card-header">
+                        <h3>
+                            <span class="material-symbols-outlined card-icon">fitness_center</span>
+                            Workouts
+                        </h3>
+                    </div>
+                    <div class="card-value">
+                        <span id="workouts-current">3</span> / <span id="workouts-goal">5</span>
+                        <span style="font-size: 0.8rem;">this week</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress" id="workouts-progress" style="width: 60%;">60%</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-card" data-card="water">
+                    <div class="card-header">
+                        <h3>
+                            <span class="material-symbols-outlined card-icon">water_drop</span>
+                            Water
+                        </h3>
+                    </div>
+                    <div class="card-value">
+                        <span id="water-current">6</span> / <span id="water-goal">8</span>
+                        <span style="font-size: 0.8rem;">glasses</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress" id="water-progress" style="width: 75%;">75%</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-card" data-card="steps">
+                    <div class="card-header">
+                        <h3>
+                            <span class="material-symbols-outlined card-icon">directions_walk</span>
+                            Steps
+                        </h3>
+                    </div>
+                    <div class="card-value">
+                        <span id="steps-current">7,500</span> / <span id="steps-goal">10,000</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress" id="steps-progress" style="width: 75%;">75%</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-card" data-card="sleep">
+                    <div class="card-header">
+                        <h3>
+                            <span class="material-symbols-outlined card-icon">bedtime</span>
+                            Sleep
+                        </h3>
+                    </div>
+                    <div class="card-value">
+                        <span id="sleep-current">6.5</span> / <span id="sleep-goal">8</span>
+                        <span style="font-size: 0.8rem;">hours</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress" id="sleep-progress" style="width: 81%;">81%</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-card" data-card="weight">
+                    <div class="card-header">
+                        <h3>
+                            <span class="material-symbols-outlined card-icon">monitor_weight</span>
+                            Weight
+                        </h3>
+                    </div>
+                    <div class="card-value">
+                        <span id="weight-current">75</span>
+                        <span style="font-size: 0.8rem;">kg</span>
+                    </div>
+                    <p style="margin: 0.5rem 0; font-size: 0.9rem;">
+                        Goal: <span id="weight-goal">70</span> kg
+                        <span style="color: var(--accent-color);">(5 kg to go)</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3>Weekly Progress</h3>
+                <div class="chart">
+                    <div class="bar-container">
+                        <div class="bar" style="height: 60%;">
+                            <span class="bar-value">60%</span>
+                        </div>
+                        <span class="bar-label">Mon</span>
+                    </div>
+                    <div class="bar-container">
+                        <div class="bar" style="height: 75%;">
+                            <span class="bar-value">75%</span>
+                        </div>
+                        <span class="bar-label">Tue</span>
+                    </div>
+                    <div class="bar-container">
+                        <div class="bar" style="height: 80%;">
+                            <span class="bar-value">80%</span>
+                        </div>
+                        <span class="bar-label">Wed</span>
+                    </div>
+                    <div class="bar-container">
+                        <div class="bar" style="height: 55%;">
+                            <span class="bar-value">55%</span>
+                        </div>
+                        <span class="bar-label">Thu</span>
+                    </div>
+                    <div class="bar-container">
+                        <div class="bar" style="height: 90%;">
+                            <span class="bar-value">90%</span>
+                        </div>
+                        <span class="bar-label">Fri</span>
+                    </div>
+                    <div class="bar-container">
+                        <div class="bar" style="height: 70%;">
+                            <span class="bar-value">70%</span>
+                        </div>
+                        <span class="bar-label">Sat</span>
+                    </div>
+                    <div class="bar-container">
+                        <div class="bar" style="height: 85%;">
+                            <span class="bar-value">85%</span>
+                        </div>
+                        <span class="bar-label">Sun</span>
                     </div>
                 </div>
             </div>
         `;
+    }
+
+    connectedCallback() {
+        // Date selector functionality
+        this.shadowRoot.querySelectorAll('.date-selector button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.shadowRoot.querySelectorAll('.date-selector button').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                // Here you would typically fetch data for the selected date range
+                console.log('Date range changed to:', e.target.dataset.range);
+            });
+        });
+
+        // Quick action buttons
+        this.shadowRoot.querySelectorAll('.quick-action-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const action = e.currentTarget.dataset.action;
+                this.handleQuickAction(action);
+            });
+        });
+
+        // Card click for editing
+        this.shadowRoot.querySelectorAll('.dashboard-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                const cardType = e.currentTarget.dataset.card;
+                this.handleCardEdit(cardType);
+            });
+        });
+    }
+
+    handleQuickAction(action) {
+        switch(action) {
+            case 'meal':
+                const calories = prompt('Enter calories for this meal:');
+                if (calories) {
+                    this.data.nutrition.current = Math.min(
+                        parseInt(this.data.nutrition.current) + parseInt(calories),
+                        this.data.nutrition.goal
+                    );
+                    this.updateCard('nutrition');
+                }
+                break;
+            case 'workout':
+                this.data.workouts.current = Math.min(
+                    this.data.workouts.current + 1,
+                    this.data.workouts.goal
+                );
+                this.updateCard('workouts');
+                break;
+            case 'water':
+                this.data.water.current = Math.min(
+                    this.data.water.current + 1,
+                    this.data.water.goal
+                );
+                this.updateCard('water');
+                break;
+            case 'weight':
+                const weight = prompt('Enter your current weight (kg):');
+                if (weight) {
+                    this.data.weight.current = parseFloat(weight);
+                    this.updateCard('weight');
+                }
+                break;
+        }
+    }
+
+    handleCardEdit(cardType) {
+        const value = prompt(`Update ${cardType} value:`);
+        if (value && this.data[cardType]) {
+            this.data[cardType].current = parseFloat(value);
+            this.updateCard(cardType);
+        }
+    }
+
+    updateCard(cardType) {
+        const current = this.data[cardType].current;
+        const goal = this.data[cardType].goal;
+        const percentage = Math.round((current / goal) * 100);
+
+        const currentEl = this.shadowRoot.getElementById(`${cardType}-current`);
+        const progressEl = this.shadowRoot.getElementById(`${cardType}-progress`);
+
+        if (currentEl) {
+            currentEl.textContent = cardType === 'steps' ? current.toLocaleString() : current;
+        }
+
+        if (progressEl) {
+            progressEl.style.width = `${percentage}%`;
+            progressEl.textContent = `${percentage}%`;
+        }
     }
 }
 
