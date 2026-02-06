@@ -1711,128 +1711,715 @@ class AIHealthChat extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
+        this.conversationHistory = [];
+        this.currentView = 'chat'; // 'chat' or 'specialists'
+
+        // Knowledge base for AI responses
+        this.knowledgeBase = {
+            nutrition: {
+                keywords: ['diet', 'food', 'eat', 'nutrition', 'calories', 'protein', 'carbs', 'meal', 'weight loss', 'weight gain'],
+                responses: [
+                    "A balanced diet is key to good health! Focus on whole foods like fruits, vegetables, lean proteins, and whole grains. Would you like me to connect you with a Dietician for personalized meal planning?",
+                    "Nutrition is essential for achieving your fitness goals. Make sure you're getting enough protein (0.8-1g per pound of body weight) and staying hydrated. Need help with a meal plan? I can connect you with our Dietician!",
+                    "Proper nutrition fuels your body! Try tracking your macros: 40% carbs, 30% protein, 30% fat is a good starting point. Want expert guidance? Our Dietician can help!"
+                ]
+            },
+            fitness: {
+                keywords: ['workout', 'exercise', 'gym', 'training', 'muscle', 'cardio', 'strength', 'run', 'lift', 'fitness'],
+                responses: [
+                    "Regular exercise is crucial for health! Aim for 150 minutes of moderate activity per week. Want a personalized workout plan? I can connect you with a Fitness Trainer!",
+                    "Great that you're thinking about fitness! Combining strength training with cardio gives the best results. Would you like to speak with our Fitness Trainer for a customized program?",
+                    "Exercise is medicine! Start with 3-4 days a week and gradually increase. Need professional guidance? Our Fitness Trainer can create a plan tailored to your goals!"
+                ]
+            },
+            sports: {
+                keywords: ['sport', 'game', 'competition', 'athlete', 'performance', 'training', 'coach', 'technique', 'skill'],
+                responses: [
+                    "Sports performance requires specific training techniques! Our Sports Coach specializes in improving athletic performance and competition readiness. Would you like to connect?",
+                    "Whether you're training for competition or recreational sports, proper technique and conditioning are essential. Our Sports Coach can help optimize your performance!",
+                    "Sports-specific training can dramatically improve your game! I can connect you with our Sports Coach who specializes in athletic performance and injury prevention."
+                ]
+            },
+            medical: {
+                keywords: ['pain', 'sick', 'doctor', 'health', 'symptom', 'injury', 'medication', 'condition', 'disease', 'treatment'],
+                responses: [
+                    "For medical concerns, it's important to consult with a healthcare professional. I can connect you with a Family Doctor who can properly assess your symptoms and provide treatment.",
+                    "Your health is important! While I can provide general wellness information, medical issues should be evaluated by a doctor. Would you like me to help you connect with a Family Doctor?",
+                    "I recommend speaking with a medical professional about health concerns. I can help you schedule a consultation with our Family Doctor for proper diagnosis and care."
+                ]
+            },
+            general: {
+                keywords: ['hello', 'hi', 'help', 'what', 'how', 'can', 'thanks', 'thank you'],
+                responses: [
+                    "I'm here to help with your health and fitness journey! I can answer questions about nutrition, exercise, wellness, and connect you with specialists. What would you like to know?",
+                    "Hello! I'm your AI Health Assistant. I can provide guidance on fitness, nutrition, and wellness, plus connect you with our specialists: Family Doctor, Fitness Trainer, Sports Coach, or Dietician. How can I assist you?",
+                    "Hi there! I'm here to support your health goals. Ask me anything about fitness, nutrition, or wellness, and I can also help you schedule appointments with our specialists!"
+                ]
+            }
+        };
+
+        this.specialists = [
+            {
+                id: 'doctor',
+                name: 'Dr. Sarah Johnson',
+                role: 'Family Doctor',
+                icon: 'medical_services',
+                specialty: 'General Medicine & Preventive Care',
+                availability: 'Mon-Fri, 9 AM - 5 PM',
+                description: 'Board-certified family physician with 15 years of experience in primary care and preventive medicine.',
+                color: '#ff6b6b'
+            },
+            {
+                id: 'trainer',
+                name: 'Mike Rodriguez',
+                role: 'Fitness Trainer',
+                icon: 'fitness_center',
+                specialty: 'Strength & Conditioning',
+                availability: 'Mon-Sat, 6 AM - 8 PM',
+                description: 'Certified personal trainer specializing in strength training, weight loss, and body transformation.',
+                color: '#51cf66'
+            },
+            {
+                id: 'coach',
+                name: 'Alex Thompson',
+                role: 'Sports Coach',
+                icon: 'sports_soccer',
+                specialty: 'Athletic Performance',
+                availability: 'Tue-Sun, 7 AM - 7 PM',
+                description: 'Professional sports coach with expertise in performance optimization and sports-specific training.',
+                color: '#339af0'
+            },
+            {
+                id: 'dietician',
+                name: 'Emily Chen',
+                role: 'Registered Dietician',
+                icon: 'restaurant',
+                specialty: 'Nutrition & Meal Planning',
+                availability: 'Mon-Fri, 8 AM - 6 PM',
+                description: 'Licensed dietician specializing in personalized meal plans, weight management, and sports nutrition.',
+                color: '#ff922b'
+            }
+        ];
+
+        this.suggestedQuestions = [
+            "How many calories should I eat daily?",
+            "What's a good workout routine for beginners?",
+            "How can I lose weight safely?",
+            "What should I eat before a workout?",
+            "How do I build muscle effectively?",
+            "I have pain in my knee, what should I do?"
+        ];
+
+        this.render();
+    }
+
+    render() {
         this.shadowRoot.innerHTML = `
             <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
             <style>
-                .chat-container {
-                    max-width: 800px;
+                * {
+                    box-sizing: border-box;
+                }
+                .ai-chat-container {
+                    max-width: 1200px;
                     margin: 0 auto;
-                    border-radius: 12px;
-                    overflow: hidden;
+                }
+                .chat-header {
+                    background: linear-gradient(135deg, var(--accent-color, #8a2be2), oklch(65% 0.3 320));
+                    color: white;
+                    padding: 1.5rem;
+                    border-radius: 12px 12px 0 0;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                .chat-header h2 {
+                    margin: 0;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .view-toggle {
+                    display: flex;
+                    gap: 0.5rem;
+                }
+                .view-toggle button {
+                    background: rgba(255,255,255,0.2);
+                    border: none;
+                    color: white;
+                    padding: 0.5rem 1rem;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    transition: all 0.3s ease;
+                }
+                .view-toggle button.active {
+                    background: white;
+                    color: var(--accent-color, #8a2be2);
+                }
+                .view-toggle button:hover {
+                    background: rgba(255,255,255,0.3);
+                }
+                .view-toggle button.active:hover {
+                    background: white;
+                }
+                .main-content {
+                    background: var(--card-bg, #fff);
                     border: 1px solid var(--border-color, #eee);
+                    border-top: none;
+                    border-radius: 0 0 12px 12px;
                     box-shadow: 0 4px 10px var(--shadow-color, rgba(0,0,0,0.1));
                 }
-                .chat-window {
-                    height: 400px;
+                .chat-view, .specialists-view {
+                    display: none;
+                }
+                .chat-view.active, .specialists-view.active {
+                    display: block;
+                }
+                .suggested-questions {
                     padding: 1rem;
+                    border-bottom: 1px solid var(--border-color, #eee);
+                    background: var(--primary-color, #f9f9f9);
+                }
+                .suggested-questions h4 {
+                    margin: 0 0 0.5rem 0;
+                    color: var(--text-color, #333);
+                    font-size: 0.9rem;
+                }
+                .question-chips {
+                    display: flex;
+                    gap: 0.5rem;
+                    flex-wrap: wrap;
+                }
+                .question-chip {
+                    background: white;
+                    border: 1px solid var(--border-color, #ccc);
+                    padding: 0.4rem 0.8rem;
+                    border-radius: 16px;
+                    cursor: pointer;
+                    font-size: 0.85rem;
+                    transition: all 0.3s ease;
+                }
+                .question-chip:hover {
+                    background: var(--accent-color, #8a2be2);
+                    color: white;
+                    border-color: var(--accent-color, #8a2be2);
+                }
+                .chat-window {
+                    height: 500px;
+                    padding: 1.5rem;
                     overflow-y: auto;
                     background-color: var(--card-bg, #fff);
                 }
                 .chat-message {
-                    margin-bottom: 1rem;
+                    margin-bottom: 1.5rem;
+                    animation: slideIn 0.3s ease;
+                }
+                @keyframes slideIn {
+                    from {
+                        opacity: 0;
+                        transform: translateY(10px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
                 }
                 .chat-message.user {
                     text-align: right;
                 }
                 .message-bubble {
                     display: inline-block;
-                    padding: 0.8rem 1.2rem;
+                    padding: 0.9rem 1.3rem;
                     border-radius: 18px;
-                    max-width: 80%;
+                    max-width: 75%;
+                    word-wrap: break-word;
                 }
                 .chat-message.user .message-bubble {
-                    background-color: var(--accent-color, #8a2be2);
+                    background: linear-gradient(135deg, var(--accent-color, #8a2be2), oklch(65% 0.3 320));
                     color: white;
+                    border-bottom-right-radius: 4px;
                 }
                 .chat-message.bot .message-bubble {
-                    background-color: var(--primary-color, #f0f0f0);
+                    background: var(--primary-color, #f0f0f0);
+                    color: var(--text-color, #333);
+                    border-bottom-left-radius: 4px;
                 }
-                .chat-input {
+                .chat-message.bot {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 0.5rem;
+                }
+                .bot-avatar {
+                    width: 36px;
+                    height: 36px;
+                    background: linear-gradient(135deg, var(--accent-color, #8a2be2), oklch(65% 0.3 320));
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    flex-shrink: 0;
+                }
+                .typing-indicator {
+                    display: none;
+                    padding: 0.9rem 1.3rem;
+                    background: var(--primary-color, #f0f0f0);
+                    border-radius: 18px;
+                    width: fit-content;
+                }
+                .typing-indicator.active {
+                    display: flex;
+                    gap: 0.3rem;
+                    align-items: center;
+                }
+                .typing-dot {
+                    width: 8px;
+                    height: 8px;
+                    background: var(--accent-color, #8a2be2);
+                    border-radius: 50%;
+                    animation: typing 1.4s infinite;
+                }
+                .typing-dot:nth-child(2) {
+                    animation-delay: 0.2s;
+                }
+                .typing-dot:nth-child(3) {
+                    animation-delay: 0.4s;
+                }
+                @keyframes typing {
+                    0%, 60%, 100% {
+                        transform: translateY(0);
+                    }
+                    30% {
+                        transform: translateY(-10px);
+                    }
+                }
+                .quick-actions {
+                    display: flex;
+                    gap: 0.5rem;
+                    margin-top: 0.5rem;
+                    flex-wrap: wrap;
+                }
+                .quick-action-btn {
+                    background: white;
+                    border: 1px solid var(--accent-color, #8a2be2);
+                    color: var(--accent-color, #8a2be2);
+                    padding: 0.5rem 1rem;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.3rem;
+                }
+                .quick-action-btn:hover {
+                    background: var(--accent-color, #8a2be2);
+                    color: white;
+                }
+                .chat-input-container {
                     display: flex;
                     padding: 1rem;
                     border-top: 1px solid var(--border-color, #eee);
                     align-items: center;
+                    gap: 0.5rem;
+                    background: var(--primary-color, #f9f9f9);
                 }
-                .chat-input input {
+                .chat-input-container input {
                     flex-grow: 1;
                     border: 1px solid var(--border-color, #ccc);
-                    border-radius: 8px;
-                    padding: 0.8rem;
+                    border-radius: 24px;
+                    padding: 0.9rem 1.2rem;
                     font-size: 1rem;
-                    margin-right: 1rem;
+                    background: white;
                 }
-                .specialist-buttons button {
-                    background: none;
+                .send-btn {
+                    background: var(--accent-color, #8a2be2);
+                    color: white;
                     border: none;
+                    padding: 0.9rem 1.5rem;
+                    border-radius: 24px;
                     cursor: pointer;
-                    padding: 0.5rem;
+                    font-weight: 600;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.3rem;
+                    transition: all 0.3s ease;
                 }
-                 .specialist-buttons .icon {
-                    font-size: 28px;
+                .send-btn:hover {
+                    box-shadow: 0 0 15px var(--accent-glow, #8a2be280);
+                    transform: translateY(-2px);
+                }
+                .specialists-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                    gap: 1.5rem;
+                    padding: 1.5rem;
+                }
+                .specialist-card {
+                    background: white;
+                    border: 2px solid var(--border-color, #eee);
+                    border-radius: 12px;
+                    padding: 1.5rem;
+                    transition: all 0.3s ease;
+                    cursor: pointer;
+                }
+                .specialist-card:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 8px 20px var(--shadow-color, rgba(0,0,0,0.15));
+                }
+                .specialist-header {
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                    margin-bottom: 1rem;
+                }
+                .specialist-icon {
+                    width: 60px;
+                    height: 60px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 32px;
+                    color: white;
+                }
+                .specialist-info h3 {
+                    margin: 0;
+                    font-size: 1.2rem;
                     color: var(--text-color, #333);
-                 }
+                }
+                .specialist-info .role {
+                    font-size: 0.9rem;
+                    color: #666;
+                    font-weight: 600;
+                }
+                .specialist-details {
+                    margin: 1rem 0;
+                }
+                .detail-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    margin-bottom: 0.5rem;
+                    font-size: 0.9rem;
+                    color: #666;
+                }
+                .detail-item .icon {
+                    font-size: 18px;
+                }
+                .specialist-card p {
+                    font-size: 0.9rem;
+                    line-height: 1.5;
+                    color: #666;
+                    margin: 1rem 0;
+                }
+                .connect-btn {
+                    width: 100%;
+                    background: var(--accent-color, #8a2be2);
+                    color: white;
+                    border: none;
+                    padding: 0.8rem;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    font-size: 1rem;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
+                }
+                .connect-btn:hover {
+                    box-shadow: 0 0 15px var(--accent-glow, #8a2be280);
+                    transform: translateY(-2px);
+                }
             </style>
-            <div class="chat-container">
-                <div class="chat-window">
-                     <div class="chat-message bot">
-                        <div class="message-bubble">Hello! I'm your AI Health Assistant. How can I help you today?</div>
+
+            <div class="ai-chat-container">
+                <div class="chat-header">
+                    <h2>
+                        <span class="material-symbols-outlined">smart_toy</span>
+                        AI Health Assistant
+                    </h2>
+                    <div class="view-toggle">
+                        <button class="active" data-view="chat">Chat</button>
+                        <button data-view="specialists">Specialists</button>
                     </div>
                 </div>
-                <div class="chat-input">
-                    <input type="text" placeholder="Type your message...">
-                    <div class="specialist-buttons">
-                        <button data-role="Doctor" title="Talk to a Doctor"><span class="material-symbols-outlined icon">medical_services</span></button>
-                        <button data-role="Coach" title="Talk to a Coach"><span class="material-symbols-outlined icon">fitness_center</span></button>
-                        <button data-role="Dietitian" title="Talk to a Dietitian"><span class="material-symbols-outlined icon">restaurant</span></button>
+
+                <div class="main-content">
+                    <div class="chat-view active">
+                        <div class="suggested-questions">
+                            <h4>Quick Questions:</h4>
+                            <div class="question-chips" id="question-chips"></div>
+                        </div>
+                        <div class="chat-window" id="chat-window">
+                            <div class="chat-message bot">
+                                <div class="bot-avatar">
+                                    <span class="material-symbols-outlined">smart_toy</span>
+                                </div>
+                                <div>
+                                    <div class="message-bubble">Hello! I'm your AI Health Assistant. I can help with fitness, nutrition, wellness advice, and connect you with our specialists. What would you like to know?</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chat-input-container">
+                            <input type="text" id="chat-input" placeholder="Ask me anything about health and fitness...">
+                            <button class="send-btn" id="send-btn">
+                                <span class="material-symbols-outlined">send</span>
+                                Send
+                            </button>
+                        </div>
                     </div>
-                    <button id="send-btn">Send</button>
+
+                    <div class="specialists-view">
+                        <div class="specialists-grid" id="specialists-grid"></div>
+                    </div>
                 </div>
             </div>
         `;
+
+        this.renderSuggestedQuestions();
+        this.renderSpecialists();
     }
 
     connectedCallback() {
-        const chatInput = this.shadowRoot.querySelector('.chat-input input');
-        const sendButton = this.shadowRoot.getElementById('send-btn');
-        const chatWindow = this.shadowRoot.querySelector('.chat-window');
-
-        sendButton.addEventListener('click', () => {
-            this.sendMessage(chatInput, chatWindow);
+        // View toggle
+        this.shadowRoot.querySelectorAll('.view-toggle button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const view = e.target.dataset.view;
+                this.switchView(view);
+            });
         });
 
+        // Chat input
+        const chatInput = this.shadowRoot.getElementById('chat-input');
+        const sendBtn = this.shadowRoot.getElementById('send-btn');
+
+        sendBtn.addEventListener('click', () => this.sendMessage());
         chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.sendMessage(chatInput, chatWindow);
-            }
+            if (e.key === 'Enter') this.sendMessage();
         });
 
-        this.shadowRoot.querySelectorAll('.specialist-buttons button').forEach(button => {
-            button.addEventListener('click', () => {
-                const role = button.dataset.role;
-                this.addMessage(`You have requested to speak with a ${role}. A specialist will be with you shortly.`, 'bot', chatWindow);
+        // Suggested questions
+        this.shadowRoot.querySelectorAll('.question-chip').forEach(chip => {
+            chip.addEventListener('click', (e) => {
+                chatInput.value = e.target.textContent;
+                this.sendMessage();
             });
         });
     }
 
-    sendMessage(chatInput, chatWindow) {
-        const message = chatInput.value.trim();
-        if (!message) return;
-
-        this.addMessage(message, 'user', chatWindow);
-        chatInput.value = '';
-
-        // Mock bot response
-        setTimeout(() => {
-            this.addMessage("I'm sorry, I'm just a demo, so I can't really help with that. But I can connect you with a specialist!", 'bot', chatWindow);
-        }, 1000);
+    switchView(view) {
+        this.currentView = view;
+        this.shadowRoot.querySelectorAll('.view-toggle button').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.view === view);
+        });
+        this.shadowRoot.querySelectorAll('.chat-view, .specialists-view').forEach(v => {
+            v.classList.toggle('active', v.classList.contains(`${view}-view`));
+        });
     }
 
-    addMessage(message, sender, chatWindow) {
-        const messageElement = document.createElement('div');
-        messageElement.classList.add('chat-message', sender);
-        messageElement.innerHTML = `<div class="message-bubble">${message}</div>`;
-        chatWindow.appendChild(messageElement);
+    renderSuggestedQuestions() {
+        const container = this.shadowRoot.getElementById('question-chips');
+        container.innerHTML = this.suggestedQuestions.map(q =>
+            `<div class="question-chip">${q}</div>`
+        ).join('');
+    }
+
+    renderSpecialists() {
+        const container = this.shadowRoot.getElementById('specialists-grid');
+        container.innerHTML = this.specialists.map(spec => `
+            <div class="specialist-card" data-specialist="${spec.id}">
+                <div class="specialist-header">
+                    <div class="specialist-icon" style="background: ${spec.color};">
+                        <span class="material-symbols-outlined">${spec.icon}</span>
+                    </div>
+                    <div class="specialist-info">
+                        <h3>${spec.name}</h3>
+                        <div class="role">${spec.role}</div>
+                    </div>
+                </div>
+                <div class="specialist-details">
+                    <div class="detail-item">
+                        <span class="material-symbols-outlined icon">workspace_premium</span>
+                        <span>${spec.specialty}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="material-symbols-outlined icon">schedule</span>
+                        <span>${spec.availability}</span>
+                    </div>
+                </div>
+                <p>${spec.description}</p>
+                <button class="connect-btn" onclick="document.querySelector('ai-health-chat').connectSpecialist('${spec.id}')">
+                    <span class="material-symbols-outlined">video_call</span>
+                    Schedule Consultation
+                </button>
+            </div>
+        `).join('');
+    }
+
+    sendMessage() {
+        const input = this.shadowRoot.getElementById('chat-input');
+        const message = input.value.trim();
+        if (!message) return;
+
+        this.addMessage(message, 'user');
+        input.value = '';
+
+        // Show typing indicator
+        this.showTyping();
+
+        // Generate AI response
+        setTimeout(() => {
+            this.hideTyping();
+            const response = this.generateResponse(message);
+            this.addMessage(response.text, 'bot', response.actions);
+        }, 1500);
+    }
+
+    generateResponse(message) {
+        const lowerMessage = message.toLowerCase();
+
+        // Check each category
+        for (const [category, data] of Object.entries(this.knowledgeBase)) {
+            if (data.keywords.some(keyword => lowerMessage.includes(keyword))) {
+                const response = data.responses[Math.floor(Math.random() * data.responses.length)];
+                return {
+                    text: response,
+                    actions: this.getQuickActions(category)
+                };
+            }
+        }
+
+        // Default response
+        return {
+            text: "I'm here to help with your health and fitness questions! You can ask me about nutrition, exercise, wellness, or I can connect you with one of our specialists for personalized guidance.",
+            actions: [
+                { label: 'View Specialists', action: 'specialists' }
+            ]
+        };
+    }
+
+    getQuickActions(category) {
+        const actions = {
+            nutrition: [
+                { label: 'Talk to Dietician', action: 'connect', specialist: 'dietician' }
+            ],
+            fitness: [
+                { label: 'Talk to Trainer', action: 'connect', specialist: 'trainer' }
+            ],
+            sports: [
+                { label: 'Talk to Sports Coach', action: 'connect', specialist: 'coach' }
+            ],
+            medical: [
+                { label: 'Talk to Doctor', action: 'connect', specialist: 'doctor' }
+            ],
+            general: [
+                { label: 'View All Specialists', action: 'specialists' }
+            ]
+        };
+        return actions[category] || [];
+    }
+
+    addMessage(text, sender, actions = []) {
+        const chatWindow = this.shadowRoot.getElementById('chat-window');
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('chat-message', sender);
+
+        if (sender === 'bot') {
+            messageDiv.innerHTML = `
+                <div class="bot-avatar">
+                    <span class="material-symbols-outlined">smart_toy</span>
+                </div>
+                <div>
+                    <div class="message-bubble">${text}</div>
+                    ${actions.length > 0 ? `
+                        <div class="quick-actions">
+                            ${actions.map(action => `
+                                <button class="quick-action-btn" data-action="${action.action}" data-specialist="${action.specialist || ''}">
+                                    <span class="material-symbols-outlined">arrow_forward</span>
+                                    ${action.label}
+                                </button>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            // Add event listeners to quick action buttons
+            setTimeout(() => {
+                messageDiv.querySelectorAll('.quick-action-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const action = e.currentTarget.dataset.action;
+                        const specialist = e.currentTarget.dataset.specialist;
+                        if (action === 'specialists') {
+                            this.switchView('specialists');
+                        } else if (action === 'connect' && specialist) {
+                            this.connectSpecialist(specialist);
+                        }
+                    });
+                });
+            }, 100);
+        } else {
+            messageDiv.innerHTML = `<div class="message-bubble">${text}</div>`;
+        }
+
+        chatWindow.appendChild(messageDiv);
         chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    showTyping() {
+        const chatWindow = this.shadowRoot.getElementById('chat-window');
+        const typingDiv = document.createElement('div');
+        typingDiv.classList.add('chat-message', 'bot');
+        typingDiv.id = 'typing-indicator-msg';
+        typingDiv.innerHTML = `
+            <div class="bot-avatar">
+                <span class="material-symbols-outlined">smart_toy</span>
+            </div>
+            <div class="typing-indicator active">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        `;
+        chatWindow.appendChild(typingDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    hideTyping() {
+        const typing = this.shadowRoot.getElementById('typing-indicator-msg');
+        if (typing) typing.remove();
+    }
+
+    connectSpecialist(specialistId) {
+        const specialist = this.specialists.find(s => s.id === specialistId);
+        if (!specialist) return;
+
+        this.switchView('chat');
+
+        setTimeout(() => {
+            this.addMessage(`I'd like to schedule a consultation with ${specialist.name}.`, 'user');
+
+            setTimeout(() => {
+                this.showTyping();
+                setTimeout(() => {
+                    this.hideTyping();
+                    this.addMessage(
+                        `Great choice! ${specialist.name} (${specialist.role}) specializes in ${specialist.specialty}. They're available ${specialist.availability}. ` +
+                        `I'll help you schedule an appointment. Please provide your preferred date and time, or would you like to see their next available slots?`,
+                        'bot',
+                        [
+                            { label: 'See Available Times', action: 'schedule', specialist: specialistId },
+                            { label: 'Call Directly', action: 'call', specialist: specialistId }
+                        ]
+                    );
+                }, 1500);
+            }, 500);
+        }, 300);
     }
 }
 
