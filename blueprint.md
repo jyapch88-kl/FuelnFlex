@@ -12,6 +12,7 @@ A unified app that monitors nutrition intake, plans for training in high-intensi
 *   **Community:** A space for users to connect, share progress, and support each other.
     *   **Forum Boards:** A forum-style community section with boards for different topics.
     *   **Feature Voting:** A section for users to vote on proposed new features for the app.
+*   **AI Health Chat:** A chatbot that connects users to a Doctor, Coach, or Dietitian for personalized advice.
 *   **Nutrition Tracking:** A tool to log meals and monitor daily caloric intake.
     *   **Photo Upload:** Users can upload a photo of their food or drink.
     *   **Auto-Calculation:** The app will automatically calculate the calorie intake from the photo.
@@ -24,7 +25,9 @@ A unified app that monitors nutrition intake, plans for training in high-intensi
 
 ## Current Task
 
-**Dashboard Enhancement:**
+**AI Health Chat:**
 
-1.  **Visually-Friendly Design:** Make the dashboard more visually appealing.
-2.  **Create New Dashboard:** Allow users to create new dashboards.
+1.  **Chatbot Component:** Create a new `ai-health-chat` web component.
+2.  **User Role Selection:** Allow users to select whether they want to chat with a Doctor, Coach, or Dietitian.
+3.  **Chat Interface:** Build a clean and intuitive chat interface.
+4.  **Navigation Integration:** Add a new "AI Health Chat" button to the main navigation.
