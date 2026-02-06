@@ -2012,15 +2012,236 @@ class CommunityBoard extends HTMLElement {
         super();
         this.attachShadow({ mode: 'open' });
         this.shadowRoot.innerHTML = `
-            <local-services-map></local-services-map>
-            <h3>Community Forum</h3>
-            <div id="post-form">
-                <input type="text" id="post-title" placeholder="Post title"/>
-                <textarea id="post-content" placeholder="Share your thoughts..."></textarea>
-                <button id="add-post-btn">Add Post</button>
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+            <style>
+                .community-container {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                }
+                .forum-header {
+                    background: linear-gradient(135deg, var(--accent-color, #8a2be2), oklch(65% 0.3 320));
+                    color: white;
+                    padding: 2rem;
+                    border-radius: 12px;
+                    margin-bottom: 2rem;
+                    text-align: center;
+                }
+                .forum-header h3 {
+                    margin: 0 0 0.5rem 0;
+                    font-size: 2rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
+                }
+                .forum-header p {
+                    margin: 0;
+                    opacity: 0.9;
+                }
+                .post-form-card {
+                    background: var(--card-bg, #fff);
+                    padding: 2rem;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 10px var(--shadow-color, rgba(0,0,0,0.1));
+                    border: 1px solid var(--border-color, #eee);
+                    margin-bottom: 2rem;
+                }
+                .post-form-card h4 {
+                    margin: 0 0 1.5rem 0;
+                    color: var(--accent-color, #8a2be2);
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .form-group {
+                    margin-bottom: 1.5rem;
+                }
+                .form-group label {
+                    display: block;
+                    margin-bottom: 0.5rem;
+                    font-weight: 600;
+                    color: var(--text-color, #333);
+                    display: flex;
+                    align-items: center;
+                    gap: 0.3rem;
+                }
+                .form-group input,
+                .form-group textarea {
+                    width: 100%;
+                    padding: 0.9rem 1rem;
+                    border: 2px solid var(--border-color, #e0e0e0);
+                    border-radius: 8px;
+                    font-size: 1rem;
+                    font-family: inherit;
+                    transition: all 0.3s ease;
+                    background: var(--card-bg, #fff);
+                }
+                .form-group input:focus,
+                .form-group textarea:focus {
+                    outline: none;
+                    border-color: var(--accent-color, #8a2be2);
+                    box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.1);
+                }
+                .form-group input::placeholder,
+                .form-group textarea::placeholder {
+                    color: #999;
+                }
+                .form-group textarea {
+                    min-height: 120px;
+                    resize: vertical;
+                    line-height: 1.6;
+                }
+                .char-counter {
+                    text-align: right;
+                    font-size: 0.85rem;
+                    color: #666;
+                    margin-top: 0.3rem;
+                }
+                .add-post-btn {
+                    background: var(--accent-color, #8a2be2);
+                    color: white;
+                    border: none;
+                    padding: 1rem 2rem;
+                    border-radius: 8px;
+                    font-size: 1rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    justify-content: center;
+                    width: 100%;
+                }
+                .add-post-btn:hover:not(:disabled) {
+                    box-shadow: 0 0 15px var(--accent-glow, #8a2be280);
+                    transform: translateY(-2px);
+                }
+                .add-post-btn:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+                .posts-section {
+                    margin-bottom: 2rem;
+                }
+                .section-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 1.5rem;
+                }
+                .section-header h4 {
+                    margin: 0;
+                    color: var(--text-color, #333);
+                    font-size: 1.3rem;
+                }
+                .posts-count {
+                    background: var(--primary-color, #f0f0f0);
+                    color: var(--text-color, #666);
+                    padding: 0.3rem 0.8rem;
+                    border-radius: 12px;
+                    font-size: 0.9rem;
+                    font-weight: 600;
+                }
+                #posts-container {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
+                }
+                .empty-state {
+                    text-align: center;
+                    padding: 3rem;
+                    color: #666;
+                }
+                .empty-state .icon {
+                    font-size: 64px;
+                    color: #ccc;
+                    margin-bottom: 1rem;
+                }
+
+                @media (max-width: 768px) {
+                    .forum-header {
+                        padding: 1.5rem;
+                    }
+                    .forum-header h3 {
+                        font-size: 1.5rem;
+                    }
+                    .post-form-card {
+                        padding: 1.5rem;
+                    }
+                    .add-post-btn {
+                        padding: 0.9rem 1.5rem;
+                    }
+                }
+            </style>
+
+            <div class="community-container">
+                <local-services-map></local-services-map>
+
+                <div class="forum-header">
+                    <h3>
+                        <span class="material-symbols-outlined">forum</span>
+                        Community Forum
+                    </h3>
+                    <p>Share your fitness journey, ask questions, and connect with others</p>
+                </div>
+
+                <div class="post-form-card">
+                    <h4>
+                        <span class="material-symbols-outlined">edit_note</span>
+                        Create a New Post
+                    </h4>
+                    <form id="post-form">
+                        <div class="form-group">
+                            <label for="post-title">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">title</span>
+                                Post Title
+                            </label>
+                            <input
+                                type="text"
+                                id="post-title"
+                                placeholder="Enter an engaging title for your post..."
+                                maxlength="100"
+                                required
+                            />
+                            <div class="char-counter">
+                                <span id="title-counter">0</span>/100
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="post-content">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">description</span>
+                                Share Your Thoughts
+                            </label>
+                            <textarea
+                                id="post-content"
+                                placeholder="Share your experiences, ask questions, or provide advice to the community..."
+                                maxlength="1000"
+                                required
+                            ></textarea>
+                            <div class="char-counter">
+                                <span id="content-counter">0</span>/1000
+                            </div>
+                        </div>
+
+                        <button type="submit" class="add-post-btn" id="add-post-btn">
+                            <span class="material-symbols-outlined">add_circle</span>
+                            Publish Post
+                        </button>
+                    </form>
+                </div>
+
+                <div class="posts-section">
+                    <div class="section-header">
+                        <h4>Recent Posts</h4>
+                        <span class="posts-count" id="posts-count">2 Posts</span>
+                    </div>
+                    <div id="posts-container"></div>
+                </div>
+
+                <feature-voting></feature-voting>
             </div>
-            <div id="posts-container"></div>
-            <feature-voting></feature-voting>
         `;
         
         this.posts = [
@@ -2070,19 +2291,48 @@ class CommunityBoard extends HTMLElement {
     }
 
     connectedCallback() {
-        this.shadowRoot.getElementById('add-post-btn').addEventListener('click', () => {
-            const title = this.shadowRoot.getElementById('post-title').value;
-            const content = this.shadowRoot.getElementById('post-content').value;
+        const form = this.shadowRoot.getElementById('post-form');
+        const titleInput = this.shadowRoot.getElementById('post-title');
+        const contentInput = this.shadowRoot.getElementById('post-content');
+        const titleCounter = this.shadowRoot.getElementById('title-counter');
+        const contentCounter = this.shadowRoot.getElementById('content-counter');
+        const addPostBtn = this.shadowRoot.getElementById('add-post-btn');
+        const postsCount = this.shadowRoot.getElementById('posts-count');
+
+        // Character counters
+        titleInput.addEventListener('input', () => {
+            titleCounter.textContent = titleInput.value.length;
+            this.validateForm();
+        });
+
+        contentInput.addEventListener('input', () => {
+            contentCounter.textContent = contentInput.value.length;
+            this.validateForm();
+        });
+
+        // Form submission
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const title = titleInput.value.trim();
+            const content = contentInput.value.trim();
+
             if (title && content) {
                 this.addPost(title, content);
-                this.shadowRoot.getElementById('post-title').value = '';
-                this.shadowRoot.getElementById('post-content').value = '';
+                titleInput.value = '';
+                contentInput.value = '';
+                titleCounter.textContent = '0';
+                contentCounter.textContent = '0';
+                this.validateForm();
+
+                // Update posts count
+                postsCount.textContent = `${this.posts.length} ${this.posts.length === 1 ? 'Post' : 'Posts'}`;
             }
         });
 
         // Listen for delete-post events from post-card
         this.shadowRoot.addEventListener('delete-post', (event) => {
             this.deletePost(event.detail.postId);
+            postsCount.textContent = `${this.posts.length} ${this.posts.length === 1 ? 'Post' : 'Posts'}`;
         });
 
         // Listen for update-post events from post-card
@@ -2090,6 +2340,15 @@ class CommunityBoard extends HTMLElement {
             const { postId, newTitle, newContent } = event.detail;
             this.updatePost(postId, newTitle, newContent);
         });
+    }
+
+    validateForm() {
+        const titleInput = this.shadowRoot.getElementById('post-title');
+        const contentInput = this.shadowRoot.getElementById('post-content');
+        const addPostBtn = this.shadowRoot.getElementById('add-post-btn');
+
+        const isValid = titleInput.value.trim().length > 0 && contentInput.value.trim().length > 0;
+        addPostBtn.disabled = !isValid;
     }
 }
 
