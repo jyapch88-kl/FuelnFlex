@@ -19,10 +19,24 @@ body {
     background-size: 3px 3px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
 }
 
 main {
     padding: 0 2rem 2rem;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    main {
+        padding: 0 1rem 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    main {
+        padding: 0 0.5rem 1rem;
+    }
 }
 
 feature-section {
@@ -55,4 +69,77 @@ h2 {
     font-size: clamp(2rem, 5vw, 3rem);
     margin: 0;
     padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1.5rem, 4vw, 3rem) 0;
+}
+
+/* Additional Mobile Optimizations */
+@media (max-width: 768px) {
+    feature-section {
+        border-radius: 12px;
+        margin: 1rem auto;
+    }
+
+    h1 {
+        font-size: 1.8rem;
+    }
+
+    h2 {
+        font-size: 1.6rem;
+    }
+
+    h3 {
+        font-size: 1.3rem;
+    }
+
+    h4 {
+        font-size: 1.1rem;
+    }
+
+    /* Ensure buttons are touch-friendly */
+    button {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* Make inputs more accessible on mobile */
+    input, select, textarea {
+        font-size: 16px !important; /* Prevents zoom on iOS */
+    }
+}
+
+@media (max-width: 480px) {
+    feature-section {
+        border-radius: 8px;
+        margin: 0.5rem auto;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+    }
+
+    h2 {
+        font-size: 1.4rem;
+    }
+
+    h3 {
+        font-size: 1.2rem;
+    }
+
+    /* Smaller shadow for mobile performance */
+    feature-section {
+        box-shadow:
+            0 2px 4px var(--shadow-color, rgba(0,0,0,0.05)),
+            0 5px 15px var(--shadow-color, rgba(0,0,0,0.08));
+    }
+}
+
+/* Touch-friendly interactions */
+@media (hover: none) and (pointer: coarse) {
+    button:hover {
+        /* Disable hover effects on touch devices */
+        background: initial;
+    }
+
+    button:active {
+        transform: scale(0.98);
+    }
 }

@@ -6,6 +6,7 @@ class MainNavigation extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
+        this.mobileMenuOpen = false;
         this.shadowRoot.innerHTML = `
             <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
             <style>
@@ -19,10 +20,50 @@ class MainNavigation extends HTMLElement {
                     background-color: var(--card-bg, #fff);
                     padding: 1rem 2rem;
                     display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    box-shadow: 0 2px 5px var(--shadow-color, rgba(0,0,0,0.1));
+                }
+                .nav-brand {
+                    font-weight: 700;
+                    font-size: 1.3rem;
+                    color: var(--accent-color, #8a2be2);
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .nav-links {
+                    display: flex;
                     justify-content: center;
                     align-items: center;
                     gap: 1rem;
-                    box-shadow: 0 2px 5px var(--shadow-color, rgba(0,0,0,0.1));
+                    flex: 1;
+                }
+                .hamburger {
+                    display: none;
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    padding: 0.5rem;
+                    flex-direction: column;
+                    gap: 4px;
+                }
+                .hamburger span {
+                    display: block;
+                    width: 25px;
+                    height: 3px;
+                    background-color: var(--text-color, #333);
+                    transition: all 0.3s ease;
+                    border-radius: 2px;
+                }
+                .hamburger.active span:nth-child(1) {
+                    transform: rotate(45deg) translate(6px, 6px);
+                }
+                .hamburger.active span:nth-child(2) {
+                    opacity: 0;
+                }
+                .hamburger.active span:nth-child(3) {
+                    transform: rotate(-45deg) translate(6px, -6px);
                 }
                 button, a {
                     background: none;
@@ -40,6 +81,7 @@ class MainNavigation extends HTMLElement {
                     align-items: center;
                     gap: 0.5rem;
                     position: relative;
+                    white-space: nowrap;
                 }
                 button:hover, a:hover, button.active {
                     background-color: var(--accent-color, #8a2be2);
@@ -77,28 +119,121 @@ class MainNavigation extends HTMLElement {
                     gap: 0.3rem;
                     font-size: 0.9rem;
                 }
+
+                /* Mobile Styles */
+                @media (max-width: 968px) {
+                    nav {
+                        padding: 1rem;
+                        flex-wrap: wrap;
+                    }
+                    .hamburger {
+                        display: flex;
+                        order: 3;
+                    }
+                    .nav-brand {
+                        order: 1;
+                        font-size: 1.1rem;
+                    }
+                    .nav-links {
+                        order: 4;
+                        flex-basis: 100%;
+                        flex-direction: column;
+                        gap: 0;
+                        max-height: 0;
+                        overflow: hidden;
+                        transition: max-height 0.3s ease;
+                    }
+                    .nav-links.mobile-open {
+                        max-height: 600px;
+                        margin-top: 1rem;
+                    }
+                    button, a {
+                        width: 100%;
+                        justify-content: flex-start;
+                        padding: 0.8rem 1rem;
+                        border-radius: 0;
+                        border-bottom: 1px solid var(--border-color, #eee);
+                    }
+                    button:last-child, a:last-child {
+                        border-bottom: none;
+                    }
+                    .premium-user-badge {
+                        order: 2;
+                        padding: 0.4rem 0.8rem;
+                        font-size: 0.8rem;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    nav {
+                        padding: 0.8rem;
+                    }
+                    .nav-brand {
+                        font-size: 1rem;
+                    }
+                    button, a {
+                        font-size: 0.95rem;
+                        padding: 0.7rem 0.8rem;
+                    }
+                    .premium-badge {
+                        font-size: 0.6rem;
+                        padding: 0.1rem 0.3rem;
+                    }
+                }
             </style>
             <nav>
-                <a href="index.html">Home</a>
-                <button data-target="dashboard" class="active">Dashboard</button>
-                <button data-target="about-me">About Me</button>
-                <button data-target="nutrition-tracking">Nutrition Tracking</button>
-                <button data-target="fitness-goals">Fitness Goal Planning</button>
-                <button data-target="community">Community</button>
-                <button data-target="ai-health-chat" data-premium="true">
-                    <span class="material-symbols-outlined icon">smart_toy</span>
-                    AI Health Chat
-                    <span class="premium-badge">PRO</span>
-                </button>
-                <a href="admin.html">Admin</a>
+                <div class="nav-brand">
+                    <span class="material-symbols-outlined">local_fire_department</span>
+                    Fuel & Flex
+                </div>
                 ${window.FuelFlexApp.isPremium ? '<div class="premium-user-badge"><span class="material-symbols-outlined">workspace_premium</span>Premium</div>' : ''}
+                <button class="hamburger" id="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <div class="nav-links" id="nav-links">
+                    <a href="index.html">Home</a>
+                    <button data-target="dashboard" class="active">Dashboard</button>
+                    <button data-target="about-me">About Me</button>
+                    <button data-target="nutrition-tracking">Nutrition Tracking</button>
+                    <button data-target="fitness-goals">Fitness Goal Planning</button>
+                    <button data-target="community">Community</button>
+                    <button data-target="ai-health-chat" data-premium="true">
+                        <span class="material-symbols-outlined icon">smart_toy</span>
+                        AI Health Chat
+                        <span class="premium-badge">PRO</span>
+                    </button>
+                    <a href="admin.html">Admin</a>
+                </div>
             </nav>
         `;
     }
 
     connectedCallback() {
-        this.shadowRoot.querySelectorAll('button').forEach(button => {
+        this.shadowRoot.querySelectorAll('button[data-target]').forEach(button => {
             button.addEventListener('click', () => this.handleNavigation(button));
+        });
+
+        // Hamburger menu toggle
+        const hamburger = this.shadowRoot.getElementById('hamburger');
+        const navLinks = this.shadowRoot.getElementById('nav-links');
+
+        hamburger.addEventListener('click', () => {
+            this.mobileMenuOpen = !this.mobileMenuOpen;
+            hamburger.classList.toggle('active');
+            navLinks.classList.toggle('mobile-open');
+        });
+
+        // Close mobile menu when a link is clicked
+        this.shadowRoot.querySelectorAll('.nav-links button, .nav-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (this.mobileMenuOpen) {
+                    hamburger.classList.remove('active');
+                    navLinks.classList.remove('mobile-open');
+                    this.mobileMenuOpen = false;
+                }
+            });
         });
     }
 
