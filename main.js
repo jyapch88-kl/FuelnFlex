@@ -4888,18 +4888,18 @@ class LocalServicesMap extends HTMLElement {
     }
 
     initMap() {
-        // Load Google Maps API
-        if (!window.google || !window.google.maps) {
+        // Load Leaflet.js CSS and JS (open source, no API key needed!)
+        if (!window.L) {
+            // Load Leaflet CSS
+            const cssLink = document.createElement('link');
+            cssLink.rel = 'stylesheet';
+            cssLink.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            document.head.appendChild(cssLink);
+
+            // Load Leaflet JS
             const script = document.createElement('script');
-            script.src = `https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY_HERE&callback=initMapCallback`;
-            script.async = true;
-            script.defer = true;
-
-            // Store reference to this component
-            window.initMapCallback = () => {
-                this.createMap();
-            };
-
+            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+            script.onload = () => this.createMap();
             document.head.appendChild(script);
         } else {
             this.createMap();
@@ -4908,105 +4908,94 @@ class LocalServicesMap extends HTMLElement {
 
     createMap() {
         const mapDiv = this.shadowRoot.getElementById('map');
-
         if (!mapDiv) return;
 
-        // Default center (San Francisco)
-        const center = { lat: 37.7749, lng: -122.4194 };
-
         try {
+            // Default center (San Francisco)
+            const center = [37.7749, -122.4194];
+
             // Create map
-            this.map = new google.maps.Map(mapDiv, {
-                center: center,
-                zoom: 13,
-                styles: [
-                    {
-                        featureType: 'poi',
-                        elementType: 'labels',
-                        stylers: [{ visibility: 'off' }]
-                    }
-                ]
+            this.map = L.map(mapDiv).setView(center, 13);
+
+            // Add OpenStreetMap tiles (free!)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(this.map);
+
+            // Custom icon for sponsored businesses
+            const sponsoredIcon = L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background: #FFD700; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+
+            // Custom icon for regular businesses
+            const regularIcon = L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background: #8a2be2; width: 18px; height: 18px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
+                iconSize: [18, 18],
+                iconAnchor: [9, 9]
+            });
+
+            // Custom icon for user location
+            const userIcon = L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background: #4285F4; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
             });
 
             // Add markers for each business
             this.businesses.forEach(business => {
-                const marker = new google.maps.Marker({
-                    position: { lat: business.lat, lng: business.lng },
-                    map: this.map,
-                    title: business.name,
-                    icon: {
-                        path: google.maps.SymbolPath.CIRCLE,
-                        scale: business.sponsored ? 12 : 8,
-                        fillColor: business.sponsored ? '#FFD700' : '#8a2be2',
-                        fillOpacity: 1,
-                        strokeColor: '#ffffff',
-                        strokeWeight: 2
-                    }
-                });
+                const marker = L.marker(
+                    [business.lat, business.lng],
+                    { icon: business.sponsored ? sponsoredIcon : regularIcon }
+                ).addTo(this.map);
 
-                // Add info window
-                const infoWindow = new google.maps.InfoWindow({
-                    content: `
-                        <div style="padding: 10px; max-width: 250px;">
-                            <h3 style="margin: 0 0 8px 0; color: #8a2be2;">${business.name}</h3>
-                            ${business.sponsored ? '<span style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #333; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">SPONSORED</span><br/>' : ''}
-                            <p style="margin: 8px 0; color: #666;">${business.description}</p>
-                            <p style="margin: 4px 0;"><strong>⭐ ${business.rating}</strong> • ${business.distance} km away</p>
-                            <div style="margin-top: 10px;">
-                                <a href="tel:${business.phone}" style="color: #8a2be2; text-decoration: none; margin-right: 15px;">📞 Call</a>
-                                <a href="https://maps.google.com/?q=${encodeURIComponent(business.address)}" target="_blank" style="color: #8a2be2; text-decoration: none;">🧭 Directions</a>
-                            </div>
+                // Create popup content
+                const popupContent = `
+                    <div style="min-width: 200px;">
+                        <h3 style="margin: 0 0 8px 0; color: #8a2be2; font-size: 1.1rem;">${business.name}</h3>
+                        ${business.sponsored ? '<span style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #333; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; display: inline-block; margin-bottom: 8px;">⭐ SPONSORED</span><br/>' : ''}
+                        <p style="margin: 8px 0; color: #666; font-size: 0.9rem;">${business.description}</p>
+                        <p style="margin: 8px 0; font-weight: 600;"><strong>⭐ ${business.rating}</strong> • ${business.distance} km away</p>
+                        <div style="margin-top: 10px; display: flex; gap: 10px;">
+                            <a href="tel:${business.phone}" style="color: #8a2be2; text-decoration: none; font-weight: 600;">📞 Call</a>
+                            <a href="https://maps.google.com/?q=${encodeURIComponent(business.address)}" target="_blank" style="color: #8a2be2; text-decoration: none; font-weight: 600;">🧭 Directions</a>
                         </div>
-                    `
-                });
+                    </div>
+                `;
 
-                marker.addListener('click', () => {
-                    infoWindow.open(this.map, marker);
-                });
+                marker.bindPopup(popupContent);
             });
 
             // Try to get user location
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
-                        const userPos = {
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude
-                        };
+                        const userPos = [position.coords.latitude, position.coords.longitude];
 
                         // Add user location marker
-                        new google.maps.Marker({
-                            position: userPos,
-                            map: this.map,
-                            title: 'Your Location',
-                            icon: {
-                                path: google.maps.SymbolPath.CIRCLE,
-                                scale: 10,
-                                fillColor: '#4285F4',
-                                fillOpacity: 1,
-                                strokeColor: '#ffffff',
-                                strokeWeight: 3
-                            }
-                        });
+                        this.userMarker = L.marker(userPos, { icon: userIcon }).addTo(this.map);
+                        this.userMarker.bindPopup('<strong>📍 Your Location</strong>');
 
                         // Center map on user location
-                        this.map.setCenter(userPos);
+                        this.map.setView(userPos, 14);
                     },
                     () => {
-                        // If geolocation fails, use default center
                         console.log('Geolocation failed, using default location');
                     }
                 );
             }
         } catch (error) {
             console.error('Error creating map:', error);
-            // Show fallback message
             mapDiv.innerHTML = `
                 <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white; text-align: center; padding: 2rem;">
                     <div>
                         <p style="font-size: 1.2rem; margin-bottom: 1rem;">📍 Interactive Map</p>
-                        <p style="font-size: 0.9rem; opacity: 0.9;">Add your Google Maps API key to enable the map</p>
-                        <p style="font-size: 0.85rem; opacity: 0.8; margin-top: 1rem;">Get your free API key at: console.cloud.google.com</p>
+                        <p style="font-size: 0.9rem; opacity: 0.9;">Unable to load map. Please refresh the page.</p>
                     </div>
                 </div>
             `;
