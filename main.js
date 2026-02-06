@@ -31,6 +31,9 @@ class MainNavigation extends HTMLElement {
                     display: flex;
                     align-items: center;
                     gap: 0.5rem;
+                    white-space: nowrap;
+                    overflow: visible;
+                    flex-shrink: 0;
                 }
                 .nav-links {
                     display: flex;
@@ -133,6 +136,8 @@ class MainNavigation extends HTMLElement {
                     .nav-brand {
                         order: 1;
                         font-size: 1.1rem;
+                        flex-shrink: 0;
+                        min-width: fit-content;
                     }
                     .nav-links {
                         order: 4;
@@ -170,6 +175,13 @@ class MainNavigation extends HTMLElement {
                     }
                     .nav-brand {
                         font-size: 1rem;
+                        gap: 0.3rem;
+                        flex-shrink: 0;
+                        min-width: 0;
+                        max-width: none;
+                    }
+                    .nav-brand .material-symbols-outlined {
+                        font-size: 1.2rem;
                     }
                     button, a {
                         font-size: 0.95rem;
@@ -3306,42 +3318,42 @@ class AIHealthChat extends HTMLElement {
         this.specialists = [
             {
                 id: 'doctor',
-                name: 'Dr. Sarah Johnson',
+                name: 'Dr. Tan Wei Ming',
                 role: 'Family Doctor',
                 icon: 'medical_services',
                 specialty: 'General Medicine & Preventive Care',
                 availability: 'Mon-Fri, 9 AM - 5 PM',
-                description: 'Board-certified family physician with 15 years of experience in primary care and preventive medicine.',
+                description: 'Board-certified family physician with 15 years of experience in primary care and preventive medicine at Singapore General Hospital.',
                 color: '#ff6b6b'
             },
             {
                 id: 'trainer',
-                name: 'Mike Rodriguez',
+                name: 'Marcus Lim',
                 role: 'Fitness Trainer',
                 icon: 'fitness_center',
                 specialty: 'Strength & Conditioning',
                 availability: 'Mon-Sat, 6 AM - 8 PM',
-                description: 'Certified personal trainer specializing in strength training, weight loss, and body transformation.',
+                description: 'ACE-certified personal trainer with expertise in strength training, weight loss, and body transformation. Former national athlete.',
                 color: '#51cf66'
             },
             {
                 id: 'coach',
-                name: 'Alex Thompson',
+                name: 'Raj Kumar',
                 role: 'Sports Coach',
                 icon: 'sports_soccer',
                 specialty: 'Athletic Performance',
                 availability: 'Tue-Sun, 7 AM - 7 PM',
-                description: 'Professional sports coach with expertise in performance optimization and sports-specific training.',
+                description: 'Professional sports coach specializing in performance optimization and sports-specific training. Singapore Sports Council certified.',
                 color: '#339af0'
             },
             {
                 id: 'dietician',
-                name: 'Emily Chen',
+                name: 'Nur Aisyah Binte Hassan',
                 role: 'Registered Dietician',
                 icon: 'restaurant',
                 specialty: 'Nutrition & Meal Planning',
                 availability: 'Mon-Fri, 8 AM - 6 PM',
-                description: 'Licensed dietician specializing in personalized meal plans, weight management, and sports nutrition.',
+                description: 'Licensed dietician from National University Hospital specializing in personalized meal plans, weight management, and sports nutrition.',
                 color: '#ff922b'
             }
         ];
