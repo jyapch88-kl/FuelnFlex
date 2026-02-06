@@ -2260,93 +2260,675 @@ class AboutMe extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
+
+        // Load user data from localStorage or use defaults
+        this.userData = JSON.parse(localStorage.getItem('ff_user_profile')) || {
+            name: 'John Doe',
+            age: 28,
+            gender: 'male',
+            height: 175,
+            weight: 75,
+            targetWeight: 70,
+            activityLevel: 'moderate',
+            fitnessGoal: 'weight-loss',
+            joinDate: new Date().toISOString(),
+            achievements: []
+        };
+
+        this.achievements = [
+            { id: 1, name: 'First Workout', icon: 'fitness_center', earned: true, date: '2024-01-15' },
+            { id: 2, name: '7 Day Streak', icon: 'local_fire_department', earned: true, date: '2024-01-22' },
+            { id: 3, name: 'First Marathon Plan', icon: 'directions_run', earned: true, date: '2024-02-01' },
+            { id: 4, name: '30 Day Streak', icon: 'emoji_events', earned: false },
+            { id: 5, name: 'Weight Goal Achieved', icon: 'trending_down', earned: false },
+            { id: 6, name: 'Community Contributor', icon: 'forum', earned: false }
+        ];
+
+        this.render();
+    }
+
+    render() {
+        const bmi = this.calculateBMI();
+        const memberSince = new Date(this.userData.joinDate).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long'
+        });
+
         this.shadowRoot.innerHTML = `
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
             <style>
-                .form-group {
-                    margin-bottom: 1rem;
+                .profile-container {
+                    max-width: 1200px;
+                    margin: 0 auto;
                 }
-                label {
+                .profile-header {
+                    background: linear-gradient(135deg, var(--accent-color, #8a2be2), oklch(65% 0.3 320));
+                    color: white;
+                    padding: 2rem;
+                    border-radius: 12px;
+                    margin-bottom: 2rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 2rem;
+                    flex-wrap: wrap;
+                }
+                .profile-avatar {
+                    width: 120px;
+                    height: 120px;
+                    border-radius: 50%;
+                    background: white;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 48px;
+                    color: var(--accent-color, #8a2be2);
+                    border: 4px solid rgba(255,255,255,0.3);
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                }
+                .profile-avatar:hover {
+                    transform: scale(1.05);
+                    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+                }
+                .profile-info {
+                    flex: 1;
+                }
+                .profile-name {
+                    font-size: 2rem;
+                    font-weight: 700;
+                    margin: 0 0 0.5rem 0;
+                }
+                .profile-meta {
+                    display: flex;
+                    gap: 2rem;
+                    margin-top: 1rem;
+                    flex-wrap: wrap;
+                }
+                .meta-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .tabs {
+                    display: flex;
+                    gap: 1rem;
+                    border-bottom: 2px solid var(--border-color, #eee);
+                    margin-bottom: 2rem;
+                    flex-wrap: wrap;
+                }
+                .tab {
+                    background: none;
+                    border: none;
+                    padding: 1rem 1.5rem;
+                    font-size: 1rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    color: var(--text-color, #666);
+                    border-bottom: 3px solid transparent;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .tab:hover {
+                    color: var(--accent-color, #8a2be2);
+                }
+                .tab.active {
+                    color: var(--accent-color, #8a2be2);
+                    border-bottom-color: var(--accent-color, #8a2be2);
+                }
+                .tab-content {
+                    display: none;
+                }
+                .tab-content.active {
+                    display: block;
+                }
+                .info-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                    gap: 2rem;
+                }
+                .info-card {
+                    background: var(--card-bg, #fff);
+                    padding: 1.5rem;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 10px var(--shadow-color, rgba(0,0,0,0.1));
+                    border: 1px solid var(--border-color, #eee);
+                }
+                .info-card h3 {
+                    margin: 0 0 1rem 0;
+                    color: var(--accent-color, #8a2be2);
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                .form-group {
+                    margin-bottom: 1.5rem;
+                }
+                .form-group label {
                     display: block;
                     margin-bottom: 0.5rem;
                     font-weight: 600;
+                    color: var(--text-color, #333);
                 }
-                input {
+                .form-group input, .form-group select {
                     width: 100%;
                     padding: 0.8rem;
                     border: 1px solid var(--border-color, #ccc);
                     border-radius: 8px;
                     font-size: 1rem;
+                    font-family: inherit;
                 }
-                .calculate-btn {
-                    background-color: var(--accent-color, #8a2be2);
-                    color: white;
-                    padding: 0.8rem 1.5rem;
-                    border: none;
+                .form-row {
+                    display: grid;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 1rem;
+                }
+                .stat-display {
+                    background: var(--primary-color, #f9f9f9);
+                    padding: 1.5rem;
                     border-radius: 8px;
+                    text-align: center;
+                    margin-bottom: 1rem;
+                }
+                .stat-value {
+                    font-size: 2.5rem;
+                    font-weight: 700;
+                    color: var(--accent-color, #8a2be2);
+                    display: block;
+                }
+                .stat-label {
+                    color: #666;
+                    margin-top: 0.5rem;
+                }
+                .bmi-indicator {
+                    width: 100%;
+                    height: 30px;
+                    border-radius: 15px;
+                    background: linear-gradient(to right, #3498db, #2ecc71, #f39c12, #e74c3c);
+                    position: relative;
+                    margin: 1rem 0;
+                }
+                .bmi-pointer {
+                    position: absolute;
+                    width: 3px;
+                    height: 40px;
+                    background: #333;
+                    top: -5px;
+                    transition: left 0.5s ease;
+                }
+                .achievements-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                    gap: 1rem;
+                }
+                .achievement-card {
+                    background: var(--card-bg, #fff);
+                    padding: 1.5rem;
+                    border-radius: 12px;
+                    text-align: center;
+                    border: 2px solid var(--border-color, #eee);
+                    transition: all 0.3s ease;
                     cursor: pointer;
+                }
+                .achievement-card.earned {
+                    border-color: #FFD700;
+                    background: linear-gradient(135deg, #fff 0%, #fffaf0 100%);
+                }
+                .achievement-card.locked {
+                    opacity: 0.4;
+                    filter: grayscale(100%);
+                }
+                .achievement-card:hover:not(.locked) {
+                    transform: translateY(-5px);
+                    box-shadow: 0 8px 20px var(--shadow-color, rgba(0,0,0,0.15));
+                }
+                .achievement-icon {
+                    font-size: 48px;
+                    color: var(--accent-color, #8a2be2);
+                    margin-bottom: 0.5rem;
+                }
+                .achievement-card.earned .achievement-icon {
+                    color: #FFD700;
+                }
+                .achievement-name {
+                    font-weight: 600;
+                    font-size: 0.9rem;
+                }
+                .achievement-date {
+                    font-size: 0.75rem;
+                    color: #666;
+                    margin-top: 0.3rem;
+                }
+                .save-btn {
+                    background: var(--accent-color, #8a2be2);
+                    color: white;
+                    border: none;
+                    padding: 1rem 2rem;
+                    border-radius: 8px;
                     font-size: 1rem;
                     font-weight: 600;
+                    cursor: pointer;
                     transition: all 0.3s ease;
+                    width: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
                 }
-                .calculate-btn:hover {
-                     box-shadow: 0 0 15px var(--accent-glow, #8a2be280);
-                     transform: translateY(-2px);
+                .save-btn:hover {
+                    box-shadow: 0 0 15px var(--accent-glow, #8a2be280);
+                    transform: translateY(-2px);
                 }
-                .bmi-result {
-                    margin-top: 1.5rem;
-                    text-align: center;
-                    font-size: 1.2rem;
+                .progress-section {
+                    background: var(--primary-color, #f9f9f9);
+                    padding: 1.5rem;
+                    border-radius: 12px;
+                    margin-bottom: 1rem;
+                }
+                .progress-item {
+                    margin-bottom: 1.5rem;
+                }
+                .progress-item:last-child {
+                    margin-bottom: 0;
+                }
+                .progress-label {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 0.5rem;
                     font-weight: 600;
                 }
+                .progress-bar {
+                    width: 100%;
+                    height: 24px;
+                    background: #e0e0e0;
+                    border-radius: 12px;
+                    overflow: hidden;
+                }
+                .progress-fill {
+                    height: 100%;
+                    background: linear-gradient(90deg, var(--accent-color, #8a2be2), oklch(65% 0.3 320));
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-weight: 600;
+                    font-size: 0.85rem;
+                    transition: width 0.5s ease;
+                }
+
+                @media (max-width: 768px) {
+                    .profile-header {
+                        flex-direction: column;
+                        text-align: center;
+                    }
+                    .profile-avatar {
+                        width: 100px;
+                        height: 100px;
+                    }
+                    .profile-name {
+                        font-size: 1.5rem;
+                    }
+                    .form-row {
+                        grid-template-columns: 1fr;
+                    }
+                    .info-grid {
+                        grid-template-columns: 1fr;
+                    }
+                    .achievements-grid {
+                        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                    }
+                }
             </style>
-            <div class="form-group">
-                <label for="height">Height (cm)</label>
-                <input type="number" id="height" placeholder="Enter your height">
-            </div>
-            <div class="form-group">
-                <label for="weight">Weight (kg)</label>
-                <input type="number" id="weight" placeholder="Enter your weight">
-            </div>
-            <button class="calculate-btn">Calculate BMI</button>
-            <div class="bmi-result" style="display: none;">
-                <h3>Your BMI: <span id="bmi-value"></span></h3>
-                <p id="bmi-category"></p>
+
+            <div class="profile-container">
+                <div class="profile-header">
+                    <div class="profile-avatar" title="Click to change avatar">
+                        <span class="material-symbols-outlined">person</span>
+                    </div>
+                    <div class="profile-info">
+                        <h1 class="profile-name">${this.userData.name}</h1>
+                        <p>Transforming fitness into lifestyle</p>
+                        <div class="profile-meta">
+                            <div class="meta-item">
+                                <span class="material-symbols-outlined">calendar_today</span>
+                                <span>Member since ${memberSince}</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="material-symbols-outlined">emoji_events</span>
+                                <span>${this.achievements.filter(a => a.earned).length} Achievements</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="material-symbols-outlined">local_fire_department</span>
+                                <span>7 Day Streak</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tabs">
+                    <button class="tab active" data-tab="overview">
+                        <span class="material-symbols-outlined">dashboard</span>
+                        Overview
+                    </button>
+                    <button class="tab" data-tab="personal">
+                        <span class="material-symbols-outlined">person</span>
+                        Personal Info
+                    </button>
+                    <button class="tab" data-tab="health">
+                        <span class="material-symbols-outlined">favorite</span>
+                        Health Metrics
+                    </button>
+                    <button class="tab" data-tab="achievements">
+                        <span class="material-symbols-outlined">emoji_events</span>
+                        Achievements
+                    </button>
+                </div>
+
+                <div class="tab-content active" id="overview">
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <h3>
+                                <span class="material-symbols-outlined">analytics</span>
+                                BMI Analysis
+                            </h3>
+                            <div class="stat-display">
+                                <span class="stat-value">${bmi.value}</span>
+                                <div class="stat-label">${bmi.category}</div>
+                            </div>
+                            <div class="bmi-indicator">
+                                <div class="bmi-pointer" style="left: ${bmi.pointerPosition}%"></div>
+                            </div>
+                            <p style="text-align: center; font-size: 0.9rem; color: #666; margin-top: 0.5rem;">
+                                Underweight | Normal | Overweight | Obese
+                            </p>
+                        </div>
+
+                        <div class="info-card">
+                            <h3>
+                                <span class="material-symbols-outlined">trending_down</span>
+                                Weight Progress
+                            </h3>
+                            <div class="progress-section">
+                                <div class="progress-item">
+                                    <div class="progress-label">
+                                        <span>Current: ${this.userData.weight} kg</span>
+                                        <span>Target: ${this.userData.targetWeight} kg</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: ${this.calculateWeightProgress()}%">
+                                            ${Math.abs(this.userData.weight - this.userData.targetWeight).toFixed(1)} kg to go
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p style="margin-top: 1rem; color: #666;">
+                                ${this.userData.weight > this.userData.targetWeight ?
+                                    `You're ${(this.userData.weight - this.userData.targetWeight).toFixed(1)} kg away from your goal!` :
+                                    'Congratulations! You\'ve reached your target weight!'}
+                            </p>
+                        </div>
+
+                        <div class="info-card">
+                            <h3>
+                                <span class="material-symbols-outlined">directions_run</span>
+                                Activity Level
+                            </h3>
+                            <div class="stat-display">
+                                <span class="stat-value" style="font-size: 1.5rem; text-transform: capitalize;">
+                                    ${this.userData.activityLevel}
+                                </span>
+                                <div class="stat-label">Current Activity Level</div>
+                            </div>
+                            <p style="margin-top: 1rem; color: #666;">
+                                ${this.getActivityRecommendation()}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="personal">
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <h3>
+                                <span class="material-symbols-outlined">badge</span>
+                                Basic Information
+                            </h3>
+                            <div class="form-group">
+                                <label for="name">Full Name</label>
+                                <input type="text" id="name" value="${this.userData.name}">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="age">Age</label>
+                                    <input type="number" id="age" value="${this.userData.age}">
+                                </div>
+                                <div class="form-group">
+                                    <label for="gender">Gender</label>
+                                    <select id="gender">
+                                        <option value="male" ${this.userData.gender === 'male' ? 'selected' : ''}>Male</option>
+                                        <option value="female" ${this.userData.gender === 'female' ? 'selected' : ''}>Female</option>
+                                        <option value="other" ${this.userData.gender === 'other' ? 'selected' : ''}>Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-card">
+                            <h3>
+                                <span class="material-symbols-outlined">flag</span>
+                                Fitness Goals
+                            </h3>
+                            <div class="form-group">
+                                <label for="fitness-goal">Primary Goal</label>
+                                <select id="fitness-goal">
+                                    <option value="weight-loss" ${this.userData.fitnessGoal === 'weight-loss' ? 'selected' : ''}>Weight Loss</option>
+                                    <option value="muscle-gain" ${this.userData.fitnessGoal === 'muscle-gain' ? 'selected' : ''}>Muscle Gain</option>
+                                    <option value="endurance" ${this.userData.fitnessGoal === 'endurance' ? 'selected' : ''}>Build Endurance</option>
+                                    <option value="general-fitness" ${this.userData.fitnessGoal === 'general-fitness' ? 'selected' : ''}>General Fitness</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="activity-level">Activity Level</label>
+                                <select id="activity-level">
+                                    <option value="sedentary" ${this.userData.activityLevel === 'sedentary' ? 'selected' : ''}>Sedentary (Little to no exercise)</option>
+                                    <option value="light" ${this.userData.activityLevel === 'light' ? 'selected' : ''}>Light (1-3 days/week)</option>
+                                    <option value="moderate" ${this.userData.activityLevel === 'moderate' ? 'selected' : ''}>Moderate (3-5 days/week)</option>
+                                    <option value="active" ${this.userData.activityLevel === 'active' ? 'selected' : ''}>Active (6-7 days/week)</option>
+                                    <option value="very-active" ${this.userData.activityLevel === 'very-active' ? 'selected' : ''}>Very Active (Intense daily)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="save-btn" id="save-personal-btn">
+                        <span class="material-symbols-outlined">save</span>
+                        Save Changes
+                    </button>
+                </div>
+
+                <div class="tab-content" id="health">
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <h3>
+                                <span class="material-symbols-outlined">straighten</span>
+                                Body Measurements
+                            </h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="height">Height (cm)</label>
+                                    <input type="number" id="height" value="${this.userData.height}">
+                                </div>
+                                <div class="form-group">
+                                    <label for="weight">Current Weight (kg)</label>
+                                    <input type="number" id="weight" value="${this.userData.weight}" step="0.1">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="target-weight">Target Weight (kg)</label>
+                                <input type="number" id="target-weight" value="${this.userData.targetWeight}" step="0.1">
+                            </div>
+                        </div>
+
+                        <div class="info-card">
+                            <h3>
+                                <span class="material-symbols-outlined">calculate</span>
+                                Health Calculations
+                            </h3>
+                            <div class="stat-display">
+                                <span class="stat-value">${bmi.value}</span>
+                                <div class="stat-label">Body Mass Index (BMI)</div>
+                            </div>
+                            <div class="stat-display">
+                                <span class="stat-value">${this.calculateCalories()}</span>
+                                <div class="stat-label">Daily Calorie Target</div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="save-btn" id="save-health-btn">
+                        <span class="material-symbols-outlined">save</span>
+                        Save Health Metrics
+                    </button>
+                </div>
+
+                <div class="tab-content" id="achievements">
+                    <div class="info-card">
+                        <h3>
+                            <span class="material-symbols-outlined">emoji_events</span>
+                            Your Achievements
+                        </h3>
+                        <p style="margin-bottom: 1.5rem; color: #666;">
+                            Unlock achievements by completing challenges and reaching milestones
+                        </p>
+                        <div class="achievements-grid">
+                            ${this.achievements.map(achievement => `
+                                <div class="achievement-card ${achievement.earned ? 'earned' : 'locked'}">
+                                    <div class="achievement-icon">
+                                        <span class="material-symbols-outlined">${achievement.icon}</span>
+                                    </div>
+                                    <div class="achievement-name">${achievement.name}</div>
+                                    ${achievement.earned ? `<div class="achievement-date">${new Date(achievement.date).toLocaleDateString()}</div>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
     }
 
     connectedCallback() {
-        this.shadowRoot.querySelector('.calculate-btn').addEventListener('click', () => this.calculateBmi());
+        // Tab switching
+        this.shadowRoot.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const tabName = e.currentTarget.dataset.tab;
+                this.switchTab(tabName);
+            });
+        });
+
+        // Save personal info
+        const savePersonalBtn = this.shadowRoot.getElementById('save-personal-btn');
+        if (savePersonalBtn) {
+            savePersonalBtn.addEventListener('click', () => this.savePersonalInfo());
+        }
+
+        // Save health metrics
+        const saveHealthBtn = this.shadowRoot.getElementById('save-health-btn');
+        if (saveHealthBtn) {
+            saveHealthBtn.addEventListener('click', () => this.saveHealthMetrics());
+        }
     }
 
-    calculateBmi() {
-        const height = this.shadowRoot.getElementById('height').value;
-        const weight = this.shadowRoot.getElementById('weight').value;
+    switchTab(tabName) {
+        this.shadowRoot.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        this.shadowRoot.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 
-        if (!height || !weight) {
-            return;
-        }
+        this.shadowRoot.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+        this.shadowRoot.getElementById(tabName).classList.add('active');
+    }
 
-        const heightInMeters = height / 100;
-        const bmi = (weight / (heightInMeters * heightInMeters)).toFixed(2);
+    calculateBMI() {
+        const heightM = this.userData.height / 100;
+        const bmi = (this.userData.weight / (heightM * heightM)).toFixed(1);
 
-        const bmiValue = this.shadowRoot.getElementById('bmi-value');
-        const bmiCategory = this.shadowRoot.getElementById('bmi-category');
-        const bmiResult = this.shadowRoot.querySelector('.bmi-result');
-
-        bmiValue.textContent = bmi;
-
+        let category, pointerPosition;
         if (bmi < 18.5) {
-            bmiCategory.textContent = 'Underweight';
-        } else if (bmi >= 18.5 && bmi < 25) {
-            bmiCategory.textContent = 'Normal weight';
-        } else if (bmi >= 25 && bmi < 30) {
-            bmiCategory.textContent = 'Overweight';
+            category = 'Underweight';
+            pointerPosition = (bmi / 18.5) * 25;
+        } else if (bmi < 25) {
+            category = 'Normal Weight';
+            pointerPosition = 25 + ((bmi - 18.5) / 6.5) * 25;
+        } else if (bmi < 30) {
+            category = 'Overweight';
+            pointerPosition = 50 + ((bmi - 25) / 5) * 25;
         } else {
-            bmiCategory.textContent = 'Obesity';
+            category = 'Obese';
+            pointerPosition = 75 + Math.min(((bmi - 30) / 10) * 25, 25);
         }
 
-        bmiResult.style.display = 'block';
+        return { value: bmi, category, pointerPosition };
+    }
+
+    calculateWeightProgress() {
+        const start = this.userData.weight > this.userData.targetWeight ?
+            this.userData.weight : this.userData.targetWeight;
+        const target = this.userData.targetWeight;
+        const current = this.userData.weight;
+
+        const totalChange = Math.abs(start - target);
+        const currentChange = Math.abs(start - current);
+
+        return Math.min((currentChange / totalChange) * 100, 100);
+    }
+
+    calculateCalories() {
+        // Harris-Benedict equation (simplified)
+        const bmr = this.userData.gender === 'male' ?
+            88.362 + (13.397 * this.userData.weight) + (4.799 * this.userData.height) - (5.677 * this.userData.age) :
+            447.593 + (9.247 * this.userData.weight) + (3.098 * this.userData.height) - (4.330 * this.userData.age);
+
+        const activityMultipliers = {
+            sedentary: 1.2,
+            light: 1.375,
+            moderate: 1.55,
+            active: 1.725,
+            'very-active': 1.9
+        };
+
+        const tdee = bmr * (activityMultipliers[this.userData.activityLevel] || 1.55);
+        return Math.round(tdee);
+    }
+
+    getActivityRecommendation() {
+        const recommendations = {
+            sedentary: 'Try to add at least 30 minutes of light exercise daily.',
+            light: 'Great start! Consider increasing to 3-5 days per week.',
+            moderate: 'Excellent! You\'re meeting the recommended activity guidelines.',
+            active: 'Outstanding! Keep up the great work.',
+            'very-active': 'Amazing dedication! Ensure you\'re getting adequate rest.'
+        };
+        return recommendations[this.userData.activityLevel] || '';
+    }
+
+    savePersonalInfo() {
+        this.userData.name = this.shadowRoot.getElementById('name').value;
+        this.userData.age = parseInt(this.shadowRoot.getElementById('age').value);
+        this.userData.gender = this.shadowRoot.getElementById('gender').value;
+        this.userData.fitnessGoal = this.shadowRoot.getElementById('fitness-goal').value;
+        this.userData.activityLevel = this.shadowRoot.getElementById('activity-level').value;
+
+        localStorage.setItem('ff_user_profile', JSON.stringify(this.userData));
+        alert('Personal information saved successfully!');
+        this.render();
+    }
+
+    saveHealthMetrics() {
+        this.userData.height = parseInt(this.shadowRoot.getElementById('height').value);
+        this.userData.weight = parseFloat(this.shadowRoot.getElementById('weight').value);
+        this.userData.targetWeight = parseFloat(this.shadowRoot.getElementById('target-weight').value);
+
+        localStorage.setItem('ff_user_profile', JSON.stringify(this.userData));
+        alert('Health metrics saved successfully!');
+        this.render();
     }
 }
 
