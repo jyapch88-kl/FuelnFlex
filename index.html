@@ -10,6 +10,12 @@
 
       gtag('config', 'G-W1Y6K85QY7');
     </script>
+
+    <!-- Mark that user has visited home page -->
+    <script>
+      sessionStorage.setItem('ff_home_visited', 'true');
+    </script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fuel & Flex - Welcome</title>
@@ -24,7 +30,7 @@
         <div class="hero-content">
             <h1>Welcome to Fuel & Flex</h1>
             <p>Your ultimate companion for achieving your fitness and nutrition goals.</p>
-            <a href="app.html" class="cta-button">Get Started</a>
+            <a href="app.html" class="cta-button" onclick="sessionStorage.setItem('ff_home_visited', 'true')">Get Started</a>
         </div>
     </header>
 

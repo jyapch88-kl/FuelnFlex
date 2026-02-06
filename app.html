@@ -10,6 +10,16 @@
 
       gtag('config', 'G-W1Y6K85QY7');
     </script>
+
+    <!-- First-time visitor redirect -->
+    <script>
+      // Check if user has been to the home page first
+      if (!sessionStorage.getItem('ff_home_visited')) {
+        // First visit - redirect to home page
+        window.location.href = 'index.html';
+      }
+    </script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fuel & Flex</title>
