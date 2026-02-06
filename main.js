@@ -4557,13 +4557,22 @@ class LocalServicesMap extends HTMLElement {
     render() {
         this.shadowRoot.innerHTML = `
             <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
             <style>
+                :host {
+                    display: block;
+                }
+
                 .services-map-container {
                     background: var(--card-bg, #fff);
                     border-radius: 12px;
                     padding: 1.5rem;
                     margin: 2rem 0;
                     box-shadow: 0 4px 10px var(--shadow-color, rgba(0,0,0,0.1));
+                }
+
+                .services-map-container * {
+                    pointer-events: auto;
                 }
                 .services-header {
                     display: flex;
@@ -4618,6 +4627,63 @@ class LocalServicesMap extends HTMLElement {
                     z-index: 1;
                     display: block;
                     box-sizing: border-box;
+                    background: #f0f0f0;
+                }
+
+                /* Ensure Leaflet elements render properly */
+                #map * {
+                    box-sizing: border-box;
+                }
+
+                #map .leaflet-pane,
+                #map .leaflet-tile,
+                #map .leaflet-marker-icon,
+                #map .leaflet-marker-shadow,
+                #map .leaflet-tile-container,
+                #map .leaflet-zoom-animated {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                }
+
+                #map .leaflet-tile {
+                    width: 256px;
+                    height: 256px;
+                }
+
+                #map .leaflet-tile-pane {
+                    z-index: 2;
+                }
+
+                #map .leaflet-overlay-pane {
+                    z-index: 4;
+                }
+
+                #map .leaflet-shadow-pane {
+                    z-index: 5;
+                }
+
+                #map .leaflet-marker-pane {
+                    z-index: 6;
+                }
+
+                #map .leaflet-tooltip-pane {
+                    z-index: 7;
+                }
+
+                #map .leaflet-popup-pane {
+                    z-index: 8;
+                }
+
+                #map .leaflet-control {
+                    z-index: 9;
+                }
+
+                /* Fix for disappearing tiles on hover */
+                #map:hover .leaflet-tile,
+                #map:hover .leaflet-marker-icon {
+                    opacity: 1 !important;
+                    visibility: visible !important;
                 }
                 .map-placeholder {
                     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -4918,14 +4984,8 @@ class LocalServicesMap extends HTMLElement {
     }
 
     initMap() {
-        // Load Leaflet.js CSS and JS (open source, no API key needed!)
+        // Load Leaflet.js library (CSS is loaded in Shadow DOM via <link> tag)
         if (!window.L) {
-            // Load Leaflet CSS
-            const cssLink = document.createElement('link');
-            cssLink.rel = 'stylesheet';
-            cssLink.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-            document.head.appendChild(cssLink);
-
             // Load Leaflet JS
             const script = document.createElement('script');
             script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
